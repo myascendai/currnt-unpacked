@@ -18,7 +18,14 @@ const pageTitle =
 const nav = [
   { href: "/architecture", label: "Architecture" },
   { href: "/domains", label: "Domains" },
+  { href: "/features", label: "Features" },
   { href: "/sunset", label: "Sunset" },
+  { href: "/timeline", label: "Timeline" },
+  { href: "/security", label: "Security" },
+];
+
+const footerLinks = [
+  { href: "/glossary", label: "Glossary" },
   { href: "/colophon", label: "Colophon" },
 ];
 ---
@@ -99,8 +106,16 @@ const nav = [
           Not affiliated with the operating company.
         </p>
         <p class="site-footer__meta">
-          Code: <a href={`${base}/LICENSE`}>PolyForm Noncommercial 1.0.0</a> ·
-          Content: <a href={`${base}/LICENSE-content`}>CC BY-NC 4.0</a> ·{" "}
+          {
+            footerLinks.map((item) => (
+              <>
+                <a href={`${base}${item.href}`}>{item.label}</a>
+                <span> · </span>
+              </>
+            ))
+          }
+          Code: <a href="https://github.com/myascendai/currnt-unpacked/blob/main/LICENSE">PolyForm Noncommercial 1.0.0</a> ·
+          Content: <a href="https://github.com/myascendai/currnt-unpacked/blob/main/LICENSE-content">CC BY-NC 4.0</a> ·{" "}
           <a href="https://github.com/myascendai/currnt-unpacked">Source</a>
         </p>
       </div>

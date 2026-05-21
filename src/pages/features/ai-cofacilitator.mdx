@@ -1,0 +1,90 @@
+---
+title: "The AI co-facilitator"
+description: "A cron that wakes every five minutes, asks GPT to draft promotional copy, posts the result inside specific boards under a single privileged author account, and logs roughly 12 GB of prompt/response traces to a dedicated table. The strangest cron in the system."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# The AI co-facilitator
+
+Of the 62 scheduled jobs on the application host&apos;s crontab, one is uniquely worth a dedicated page. It is called `gpt_ai_cofac_nudging`. It fires every five minutes. It uses an OpenAI completion to draft promotional copy and posts it inside selected advisory boards under a **single privileged author account**.
+
+It is, depending on framing, a clever growth lever, an early-2020s AI-content experiment that pre-dated the current LLM moment, or a slightly haunting artifact — content authored by a model, published by a single user-id, threaded into conversations where everyone else is human.
+
+This page tells the whole story, end to end.
+
+## What it does, in one paragraph
+
+Every five minutes, a cron entry on the application host invokes a Node script that selects up to N candidate boards (active, with recent activity, matching certain "nudgeable" criteria). For each, it issues an OpenAI chat completion with the board&apos;s context, an instruction to write a short promotional/engagement post, and a few guardrails. The completion is posted into the board as a normal post — same `posts` table, same render path — but the `author_id` is a single dedicated user account marked as the AI co-facilitator. Every call writes a row to a dedicated LLM-trace table.
+
+## The data trail
+
+- **`users`** has one row for the co-facilitator: a service account with an in-house display name, set up early in the cron&apos;s lifetime. By the freeze, this account had authored thousands of posts across many boards.
+- **`posts`** rows authored by the co-facilitator look identical to human posts. The only distinguishing field is `author_id`.
+- **`ai_cofac_logs`** (the LLM-trace table) records each completion: prompt, response, model id, token counts, latency, and the board/post that prompted the call. This table has grown to **about 12 GB** over its lifetime — large enough to be the second-biggest single object in the database after `prospects`.
+- **`ai_cofac_nudge_history`** records which boards the cron has touched recently, used to throttle and avoid spamming the same board.
+
+## The flow
+
+```
+Step 1: cron fires every 5 minutes:
+          */5 * * * *  node /platformnew/scripts/gpt_ai_cofac.js
+
+Step 2: Script connects to MySQL, queries:
+          - active boards
+          - last touched > N hours ago (per ai_cofac_nudge_history)
+          - matches "nudgeable" criteria (board metadata flag)
+
+Step 3: For each candidate (cap M per run):
+          a) Loads recent posts in the board for context.
+          b) Builds a chat-completion prompt with:
+               - The board's topic/brief.
+               - The recent post excerpts.
+               - An instruction template ("draft a short prompt that...").
+          c) Calls OpenAI chat completion.
+          d) Logs prompt + response to ai_cofac_logs.
+          e) Sanity-checks the response (length, content guard).
+          f) If it passes, inserts a row into posts with author_id =
+             co-facilitator service account.
+          g) Records nudge in ai_cofac_nudge_history.
+
+Step 4: Posts go through the normal rendering pipeline — board members
+        see them in their feeds, get notification emails as usual.
+
+Step 5: Replies from human members are NOT specially handled. If a human
+        replies to a co-facilitator post, it threads naturally; the
+        co-facilitator does not converse back. It is one-shot, every five
+        minutes, per board.
+```
+
+## What it&apos;s actually for
+
+A few plausible framings overlap:
+
+1. **Engagement nudging.** Boards die when nobody posts. The co-facilitator was meant to seed prompts that pull human members back in.
+2. **Content production.** Some of the co-facilitator&apos;s posts ended up cross-referenced from blog posts and marketing assets, suggesting at least some output was used downstream.
+3. **Feedback for the AI summarization pipeline.** The same model and trace infrastructure underpinned [board summarization](/currnt-unpacked/domains/d-content); the co-facilitator may have been the testbed.
+
+All three are probably true at the same time.
+
+## The disclosure question
+
+Whether board participants knew that the co-facilitator was an AI is not knowable from the codebase alone. The display name is in-house and could plausibly read as either a human staffer or an AI; the posts go through the same render path as human posts. There is no explicit "🤖 / AI-generated" tag in the rendered output. The choice was a product decision, made years ago, and is preserved here as one of the more notable artifacts of Currnt&apos;s nine years.
+
+<Callout type="warning" title="What the OpenAI key situation looked like">
+  At the freeze, OpenAI API keys were stored per-organization in an
+  <code>organizations.open_ai_key</code> column in plaintext. The
+  co-facilitator&apos;s key was a shared key used across all calls. Categorical
+  disclosure on the [security postmortem](/currnt-unpacked/security).
+</Callout>
+
+## Why it matters for the rest of the site
+
+This page is the closest thing the system has to a "philosophical" page. The rest of Currnt is recognizable platform infrastructure. The co-facilitator is the place where the platform&apos;s own AI use most overlapped with its user-facing surface area, in a way that very few platforms did, that early.
+
+</BaseLayout>

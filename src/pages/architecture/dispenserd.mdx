@@ -1,0 +1,97 @@
+---
+title: "dispenserd — the HTTP-poll queue"
+description: "Currnt's homegrown background-work system: 5 priority lanes, 13 Supervisord-managed worker processes, 19 handlers, and the 4,591-line entrypoint that ties them together."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# `dispenserd` — the HTTP-poll queue
+
+Every long-lived web platform ends up with a queue. Currnt&apos;s queue is unusual: it&apos;s neither Kafka nor RabbitMQ nor Redis pub/sub nor SQS. It&apos;s a **homegrown HTTP-poll system** built in-house, named `dispenserd`. Producers `POST` jobs to its HTTP endpoint; workers poll the same endpoint to pull work. Acknowledgments and idempotency live in MySQL rows.
+
+It&apos;s not the queue you&apos;d design today. It&apos;s also the queue Currnt has had for nine years, and it has been more reliable than any of its replacements would&apos;ve been at the same headcount.
+
+## The architecture
+
+```
+                  ┌──────────────────────────────────────────┐
+                  │              dispenserd                  │
+   producers ────▶│  HTTP POST /enqueue                       │
+   (Sails app)    │   ├── 5 lanes (priority classes)         │
+                  │   ├── in-memory queue per lane           │
+                  │   └── MySQL ack rows for at-least-once   │
+                  └────────────────┬─────────────────────────┘
+                                   │
+                          (workers poll over HTTP)
+                                   │
+       ┌───────────────────────────┼───────────────────────────┐
+       ▼                           ▼                           ▼
+   worker A                    worker B                    worker N
+   Supervisord                 Supervisord                 Supervisord
+   ↓                           ↓                           ↓
+   4,591-line entry            4,591-line entry            4,591-line entry
+   ↓ dispatches by job type    ↓                           ↓
+   19 handler scripts          (same set)                  (same set)
+```
+
+## The five lanes
+
+Each lane corresponds to a class of work with its own latency tolerance and resource profile. Producers specify the lane on enqueue.
+
+| Lane | Typical jobs | Latency target | Workers |
+|---|---|---|---|
+| `send_email` | Transactional and outreach emails | Seconds | Many |
+| `send_outreach` | Batch outreach sends | Minutes | Many |
+| `import_prospects` | CSV imports, dedup runs | Tens of minutes | Few |
+| `enrich` | Hunter.io and LinkedIn-scraper jobs | Minutes | Few |
+| `notify` | Push notifications, slack-like internal pings | Seconds | One or two |
+
+The exact mapping of workers to lanes lives in Supervisord config; some workers are dedicated to a single lane, some round-robin across lanes.
+
+## The 19 handlers
+
+Each enqueued job carries a `type` field. The worker entry script dispatches to one of **19 handler functions** based on this type. A condensed list, grouped by purpose:
+
+- **Email-shaped:** `send_email`, `send_outreach`, `send_digest`, `send_invoice`, `notify_push`
+- **Data-shaped:** `import_prospects`, `dedup_prospects`, `enrich_prospect`, `rebuild_search_index`
+- **AI-shaped:** `ai_summarize_board`, `ai_suggest_post`, `gpt_ai_cofac_nudging`
+- **Lifecycle:** `publish_post`, `close_board`, `archive_board`
+- **Maintenance:** `purge_sessions`, `vacuum_logs`, `metric_rollup`, `health_check`
+
+A nineteenth handler is a generic `noop` used for testing.
+
+The handler dispatch lives at the top of a **4,591-line worker entry file** — by far the largest single file in the codebase. Reading it is roughly the way to understand the runtime: the queue is small, the entry is big, the handlers are inline.
+
+## Retry semantics
+
+- **Idempotency.** Each enqueue produces a row in `dispenserd_jobs` with a unique job_id. A worker that re-pulls the same job no-ops if the row is already `done`.
+- **Retry on failure.** If a handler throws, the row goes to `failed` and a retry is requeued with a back-off (exponential, capped at ~1 hour).
+- **Max retries.** Five attempts; after that the job is marked `dead` and surfaces in the dispenserd dashboard inside Treehouse.
+- **No DLQ as a separate queue.** Dead jobs sit in MySQL; staff inspects them in Treehouse.
+
+<Callout type="note" title="Why HTTP, not a real broker?">
+  The choice predates a lot of the obvious infrastructure. HTTP-poll has a few
+  surprising advantages at this scale: workers can sit behind the same VPN
+  rules as the app, the producer / consumer interface is trivially debuggable
+  with <code>curl</code>, and the failure modes (HTTP timeout, retry) are the
+  ones the rest of the stack already understands. At higher throughput it
+  would creak, but Currnt&apos;s throughput never demanded better.
+</Callout>
+
+## Operational quirks
+
+- **No fan-out lane discovery.** Workers are configured to know their lanes; adding a lane requires editing Supervisord config and restarting workers. There&apos;s no dynamic registration.
+- **In-memory queue + MySQL ack.** A worker pulling a job takes it out of the in-memory list and writes a `pulled` row. If the dispenserd process restarts, in-flight jobs that hadn&apos;t been ack&apos;d come back through the recovery pass.
+- **No priority within a lane.** Jobs in the same lane are FIFO. Priority is achieved by lane choice.
+- **The big file.** The 4,591-line entry has accumulated nine years of inline handler bodies. Several handlers reference deleted features (Calendly, Zoom, Lusha) with guards. Removing dead handlers was on the someday list.
+
+## Why this page matters for the rest
+
+The queue is the spine that connects everything: when [Domain B / Treehouse](/currnt-unpacked/domains/b-treehouse) sends an outreach blast, when [Domain F](/currnt-unpacked/domains/f-operations) sends an invoice, when [Domain D](/currnt-unpacked/domains/d-content) publishes a post, when the [AI co-facilitator](/currnt-unpacked/features/ai-cofacilitator) runs — they all go through here.
+
+</BaseLayout>

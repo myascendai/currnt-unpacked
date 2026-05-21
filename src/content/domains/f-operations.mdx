@@ -1,0 +1,80 @@
+---
+letter: "F"
+title: "Operations & ops"
+summary: "Billing, invoicing, expert payouts, legal/NDA tracking, support tickets, and other internal bookkeeping. Where the platform meets accounting."
+surface: "treehouse"
+routePrefixes:
+  - "/admin/ops/*"
+  - "/admin/billing/*"
+controllerCount: 6
+headlineFlow: "Board close → invoice → expert payout"
+order: 6
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Operations & ops
+
+The least-visible product domain and arguably the most operationally critical. Six controllers covering billing, expert compensation, contractual paperwork, and internal support tickets.
+
+## What it covers
+
+- **Client invoicing** — invoices to corporate clients for completed boards. Generated from board-status transitions; sent via the email layer; tracked through paid/overdue lifecycle.
+- **Expert payouts** — historically the most-changed area. Currently routes payments through Stripe Connect. Previously (and dormantly) supported Gnosis Safe multi-sig.
+- **Legal / NDA tracking** — per-board NDA acceptance records. The flow is dormant but the data model still expects rows.
+- **Support tickets** — an in-Treehouse ticket queue that overlaps with but is separate from the email-reply parsing in [Treehouse → Prospects](/currnt-unpacked/domains/b-treehouse).
+- **Account-rotation health** — dashboards for the SMTP-account rotation used in outreach, including bounce rates and suspension status per account.
+
+## Representative routes
+
+<RouteTable
+  caption="Operations routes — all Treehouse-internal."
+  routes={[
+    { method: "GET", path: "/admin/ops/invoices", handler: "InvoiceController.list", notes: "Filter by client, status, fiscal quarter." },
+    { method: "POST", path: "/admin/ops/invoices/:id/send", handler: "InvoiceController.send", notes: "Queues invoice email; marks sent." },
+    { method: "POST", path: "/admin/ops/invoices/:id/mark-paid", handler: "InvoiceController.markPaid", notes: "Status transition + ledger entry." },
+    { method: "GET", path: "/admin/ops/payouts", handler: "PayoutController.list", notes: "Pending and historical expert payouts." },
+    { method: "POST", path: "/admin/ops/payouts/:id/run", handler: "PayoutController.run", notes: "Triggers Stripe Connect transfer." },
+    { method: "GET", path: "/admin/ops/legal/ndas", handler: "NdaController.list", notes: "Dormant; no recent entries." },
+    { method: "GET", path: "/admin/ops/tickets", handler: "TicketController.list", notes: "Internal support queue." },
+    { method: "POST", path: "/admin/ops/tickets/:id/reply", handler: "TicketController.reply", notes: "Sends email reply; logs internal note." },
+    { method: "GET", path: "/admin/ops/email-health", handler: "EmailHealthController.dashboard", notes: "SMTP account rotation health." },
+  ]}
+/>
+
+## Headline flow: board close → invoice → expert payout
+
+```
+Step 1: Treehouse staff closes a board (BoardController.close).
+Step 2: A close hook fires InvoiceController.draftFromBoard:
+          - Reads board.client_id, board.contracted_amount.
+          - Creates an invoice row in 'draft' status.
+          - Allocates expert compensation per participation rules
+            into per-expert payout rows in 'pending' status.
+Step 3: Staff reviews draft at /admin/ops/invoices/:id, makes line-item
+        adjustments if needed, then POST .../send.
+Step 4: dispenserd lane `send_email` queues the invoice email
+        (PDF attachment generated on the fly).
+Step 5: Client pays → finance marks invoice paid via
+        POST /admin/ops/invoices/:id/mark-paid.
+Step 6: Marking paid auto-flips associated expert payout rows from
+        'pending' to 'ready'.
+Step 7: Weekly cron sweeps 'ready' payouts and runs
+        PayoutController.run on each — Stripe Connect transfer, status
+        transitions to 'sent'.
+Step 8: Expert receives funds; receipt email goes out.
+```
+
+<Callout type="dormant" title="Gnosis Safe multi-sig payouts">
+  Before the Stripe Connect migration, expert payouts went through a Gnosis
+  Safe multi-sig wallet. The integration code is intact; no transactions
+  have been signed via Safe since 2022. See [/sunset](/currnt-unpacked/sunset).
+</Callout>
+
+<Callout type="dormant" title="Click-through NDA flow">
+  Per-board NDA acceptance with versioned templates was a feature once
+  required by enterprise clients. The data model still expects rows in
+  <code>nda_acceptances</code>; the UI that surfaced the click-to-accept
+  form has been removed.
+</Callout>

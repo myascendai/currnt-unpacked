@@ -1,0 +1,79 @@
+---
+letter: "E"
+title: "Members & accounts"
+summary: "User accounts, profiles, segmentation, account merging, and lifecycle. The bookkeeping that holds the rest of the system together."
+surface: "treehouse"
+routePrefixes:
+  - "/admin/members/*"
+  - "/profile/*"
+  - "/account/*"
+controllerCount: 5
+headlineFlow: "Duplicate-account merge"
+order: 5
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Members & accounts
+
+Currnt&apos;s user model is the same `users` table for every role: visitor, member, expert, client, staff. Role distinction is by flags and a `member_type` enum, not by separate tables. This domain is everything that reads or writes that table outside of pure authentication.
+
+## What it covers
+
+- **Account list & detail** — Treehouse views over the user base, with filters by role, signup source, activity recency, and engagement score.
+- **Public profile** — `/profile/:username` for experts and members who&apos;ve set theirs up. Sparse content; most profiles are placeholders.
+- **Account settings** — `/account/settings`, `/account/notifications`, `/account/preferences`. Member-facing.
+- **Segmentation** — internal grouping for outreach (overlap with Treehouse Prospects pillar but at the user level, not the prospect level).
+- **Lifecycle ops** — suspension, reactivation, deletion (soft only), and the **merge** workflow for collapsing duplicate accounts.
+
+## Representative routes
+
+<RouteTable
+  caption="Members routes — internal admin + member-facing settings."
+  routes={[
+    { method: "GET", path: "/admin/members", handler: "MemberController.list", notes: "Filter by role, status, signup date." },
+    { method: "GET", path: "/admin/members/:id", handler: "MemberController.detail", notes: "Activity timeline + boards + outreach history." },
+    { method: "POST", path: "/admin/members/:id/suspend", handler: "MemberController.suspend", notes: "Sets status; revokes sessions in Redis." },
+    { method: "POST", path: "/admin/members/:id/merge", handler: "MemberController.merge", notes: "Collapse two accounts into one; preserves email aliases." },
+    { method: "GET", path: "/admin/members/segments", handler: "SegmentController.list", notes: "Saved internal segments for outreach overlap." },
+    { method: "GET", path: "/profile/:username", handler: "ProfileController.show", notes: "Public profile page." },
+    { method: "GET", path: "/account/settings", handler: "AccountController.settings" },
+    { method: "POST", path: "/account/settings", handler: "AccountController.updateSettings", notes: "Email, name, password change." },
+    { method: "GET", path: "/account/notifications", handler: "AccountController.notifications", notes: "Per-channel opt-in flags." },
+  ]}
+/>
+
+## Headline flow: duplicate-account merge
+
+Account dedup is the most-used operation in this domain. The CRM produces duplicates as a matter of course (same person, two emails); Treehouse&apos;s merge flow collapses them without losing history.
+
+```
+Step 1: Staff at /admin/prospects flags a dedup candidate pair.
+Step 2: Opens /admin/members/:id where MemberController.detail surfaces
+        likely-duplicate users (matched by email-domain + name fuzzy).
+Step 3: Reviews activity on each side: boards joined, posts authored,
+        outreach received, last login.
+Step 4: Selects "merge into this one" → POST /admin/members/:id/merge.
+Step 5: MemberController.merge starts a MySQL transaction:
+          - Repoint all FK references on the loser row to the winner.
+          - Move email aliases (loser row's email → users.alt_emails JSON).
+          - Soft-delete the loser row (status='merged', merged_into=winner_id).
+          - Log merge event for audit.
+        Commits or rolls back atomically.
+Step 6: Both URLs (winner + loser) now resolve to the winner; loser's old
+        email continues to work for login via the alias lookup.
+```
+
+<Callout type="dormant" title="MetaMask wallet sign-in">
+  During a brief crypto pivot, signup accepted a MetaMask wallet signature in
+  place of email/password. <code>AuthController.metamaskSignup</code> still
+  exists; nothing routes to it from a public page. See [/sunset](/currnt-unpacked/sunset).
+</Callout>
+
+<Callout type="warning" title="Password hashing">
+  The <code>users.password</code> column is sized for SHA-256 — 40
+  characters — not bcrypt. Migrating to a modern KDF was on the roadmap and
+  never happened. The implication is covered in detail on the
+  [security postmortem](/currnt-unpacked/security).
+</Callout>

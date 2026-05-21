@@ -1,0 +1,65 @@
+---
+letter: "Corp"
+title: "Corporate portals"
+summary: "Client-branded sub-experiences for enterprise customers running their own private advisory boards. A small surface that punched above its weight commercially."
+surface: "corporate"
+routePrefixes:
+  - "/corp/*"
+  - "/c/:client/*"
+controllerCount: 3
+headlineFlow: "Client signs in → views their boards → exports deliverable"
+order: 7
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Corporate portals
+
+A small product surface (three controllers, modest route count) that nonetheless represented a meaningful share of revenue. Enterprise clients with multiple ongoing engagements got a **client-branded sub-experience** — a custom subdomain or path, a custom logo and accent color, and a focused view onto just their own boards and deliverables.
+
+This is the closest thing Currnt has to multi-tenancy. It&apos;s a thin one: clients live in the same database, the same monolith renders them, and the "branding" is a small set of overrides applied at request time based on a host or path lookup.
+
+## What it covers
+
+- **Client landing** — `/c/:client` or a custom subdomain that resolves to the same controller. Displays the client&apos;s logo, accent color, contact, and list of their boards.
+- **Their boards** — the same board-view machinery as the public site, scoped to the client&apos;s engagements only.
+- **Deliverables library** — finished board summaries, available as in-page reading or PDF export.
+- **Member directory** — the client&apos;s own employees who have access; managed by a designated client admin.
+
+## Representative routes
+
+<RouteTable
+  caption="Corporate routes. Resolves on either /c/:client or a custom subdomain."
+  routes={[
+    { method: "GET", path: "/c/:client", handler: "CorporateController.home", notes: "Branded landing for this client." },
+    { method: "GET", path: "/c/:client/boards", handler: "CorporateController.boards", notes: "List of this client's active and past boards." },
+    { method: "GET", path: "/c/:client/boards/:slug", handler: "CorporateController.boardDetail", notes: "Branded view; same board engine underneath." },
+    { method: "GET", path: "/c/:client/deliverables", handler: "DeliverableController.list", notes: "All shipped board summaries." },
+    { method: "GET", path: "/c/:client/deliverables/:id.pdf", handler: "DeliverableController.pdf", notes: "Server-side PDF generation." },
+    { method: "GET", path: "/c/:client/members", handler: "CorporateController.members", notes: "Visible to client admin only." },
+    { method: "POST", path: "/c/:client/members/invite", handler: "CorporateController.inviteMember", notes: "Adds employee with client-scoped role." },
+  ]}
+/>
+
+## Headline flow: client analyst → exported deliverable
+
+```
+Step 1: Client analyst hits client subdomain (or /c/:client direct).
+Step 2: CorporateController.home resolves the client by host or :client param,
+        loads the client's branding bundle (logo, accent, contact).
+Step 3: User lands on branded home; sees grid of their active boards.
+Step 4: Clicks a board → CorporateController.boardDetail with the same view
+        machinery as the member-facing board engine, just wrapped in their
+        brand chrome.
+Step 5: When the board is closed and a summary is published, it appears in
+        /c/:client/deliverables.
+Step 6: Click "Export PDF" → server-side PDF generation hits the same
+        Twig view but with a print stylesheet, sent inline as attachment.
+```
+
+<Callout type="note" title="Domain redirect history">
+  The same controller handles legacy redirects from <code>convetit.com</code>,
+  <code>convet.it</code>, and <code>expertboards.com</code> — see
+  [/timeline](/currnt-unpacked/timeline) for the brand evolution.
+</Callout>

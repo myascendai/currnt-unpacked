@@ -1,0 +1,96 @@
+---
+title: "Worker fleet"
+description: "Supervisord-managed worker processes that drain the dispenserd queue and run Currnt's scheduled work. Topology, lane assignments, and the 4,591-line entrypoint."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# The worker fleet
+
+Behind the application host sits a **fleet of long-running worker processes**, managed by Supervisord, that consume jobs from [dispenserd](/currnt-unpacked/architecture/dispenserd) and run the scheduled tasks defined in crontab.
+
+By count, the fleet is **13 worker processes** across one or two worker hosts. By volume of work, the fleet handles ~5–10× the request count of the application host on a typical day. Outreach email batches alone can produce tens of thousands of jobs in a single Treehouse action.
+
+## Supervisord topology
+
+Each worker is a Supervisord-managed process backed by the **same Node entry script** — a 4,591-line file that handles dispatch for all 19 dispenserd handlers. What distinguishes one worker from another is its `lanes` argument, set in Supervisord config:
+
+```
+[program:worker_email_a]
+command=node /platformnew/worker.js --lanes=send_email,send_digest
+numprocs=3
+autostart=true
+autorestart=true
+
+[program:worker_outreach_a]
+command=node /platformnew/worker.js --lanes=send_outreach
+numprocs=4
+autostart=true
+
+[program:worker_data_a]
+command=node /platformnew/worker.js --lanes=import_prospects,dedup_prospects
+numprocs=2
+
+[program:worker_enrich_a]
+command=node /platformnew/worker.js --lanes=enrich
+numprocs=2
+
+[program:worker_ai_a]
+command=node /platformnew/worker.js --lanes=ai_summarize_board,gpt_ai_cofac_nudging
+numprocs=1
+
+[program:worker_misc_a]
+command=node /platformnew/worker.js --lanes=notify,publish_post,close_board,archive_board,purge_sessions,vacuum_logs,metric_rollup,health_check
+numprocs=1
+```
+
+(Exact `numprocs` counts vary; the totals work out to 13.)
+
+## What each cohort does
+
+| Cohort | Workers | Lanes drained | Notes |
+|---|---|---|---|
+| **Email** | 3 | `send_email`, `send_digest` | Highest concurrency; pulls from rotating SMTP account pool. |
+| **Outreach** | 4 | `send_outreach` | The largest batches; CRM blast traffic. |
+| **Data** | 2 | `import_prospects`, `dedup_prospects` | Long-running; sometimes hours. |
+| **Enrich** | 2 | `enrich` | Calls Hunter.io and the in-house LinkedIn scraper fleet ("Smash"). |
+| **AI** | 1 | `ai_summarize_board`, `gpt_ai_cofac_nudging` | Calls OpenAI; logs to the LLM-trace table. |
+| **Misc** | 1 | (the catch-all) | Lifecycle and maintenance handlers. |
+
+## The 4,591-line entrypoint
+
+The entry script that all 13 workers share is the largest single file in the codebase. It contains:
+
+1. A dispenserd-poll loop with back-off and graceful shutdown.
+2. A dispatch table mapping job type → handler function.
+3. **All 19 handler bodies, inlined.** Each handler is between 50 and 800 lines of imperative Node, with significant common logic (DB connections, MySQL transactions, retry behavior, structured logging).
+4. A scattering of legacy handlers for now-dormant features (Calendly, Zoom, Lusha) that guard against running if their integration credentials are missing.
+5. A signal handler that responds to `SIGTERM` from Supervisord by finishing the current job and then exiting cleanly.
+
+<Callout type="note" title="Why one big file?">
+  The file grew incrementally — each new feature added its handler inline
+  rather than as a separate module. Extracting handlers into separate files
+  was discussed and never prioritized. The current shape is more readable than
+  it sounds: dispatch table at the top, search-for-the-handler-name to land
+  where you need to be.
+</Callout>
+
+## The cron half
+
+In parallel with dispenserd-driven work, the application host&apos;s crontab runs **62 distinct scheduled jobs** directly via `node` invocations. Most of these wrap a single dispenserd-enqueue: cron fires, enqueues a batch of jobs, and the worker fleet handles the actual work. A few cron jobs run inline without going through the queue (small operations, mostly diagnostic).
+
+The strangest is `gpt_ai_cofac_nudging`, which fires every five minutes to wake the AI co-facilitator. It gets its own page: [/features/ai-cofacilitator](/currnt-unpacked/features/ai-cofacilitator).
+
+## Operational nuances
+
+- **No graceful auto-scaling.** Worker count is set in Supervisord config and only changes on human action. Backlog spikes are absorbed by latency in the affected lane.
+- **No worker-specific deploys.** All workers run the same code as the app host; deploys ssh into worker host(s) and `pm2 reload` (or Supervisord restart).
+- **One log per worker.** Supervisord captures stdout/stderr per worker into individual log files; the OpenTelemetry collector ships them along with the app-host logs.
+- **No structured worker health beyond Supervisord.** A worker that loops endlessly without making progress is detectable only via lane-depth growth in Treehouse&apos;s dispenserd dashboard.
+
+</BaseLayout>

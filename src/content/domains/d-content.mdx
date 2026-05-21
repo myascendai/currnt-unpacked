@@ -1,0 +1,70 @@
+---
+letter: "D"
+title: "Content production"
+summary: "The blog editor, board-summary generator, marketing-asset pipeline, and AI co-facilitator hooks. Entirely internal to Treehouse — none of these surfaces are public."
+surface: "treehouse"
+routePrefixes:
+  - "/admin/content/*"
+controllerCount: 4
+headlineFlow: "Draft post → AI assist → publish"
+order: 4
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Content production
+
+A small but high-traffic Treehouse pillar covering everything the company published or distributed. Four controllers, no public routes — content is authored here and surfaced under [Domain A (Public web)](/currnt-unpacked/domains/a-public-web) once published.
+
+## What it covers
+
+- **Blog posts** — written in a homegrown rich-text editor (TinyMCE-derived). Drafts → scheduled → published lifecycle. About a thousand posts in the table, very few recent.
+- **Board summaries** — the deliverables produced from concluded advisory boards. Authored by Currnt analysts, with an optional AI-assist (see below).
+- **Marketing assets** — landing-page copy, email-campaign templates, social copy. Versioned with revision history.
+- **AI co-facilitator hooks** — the cron that drafts promotional copy and threads it back into boards. The end-to-end story is on its own page: [/features/ai-cofacilitator](/currnt-unpacked/features/ai-cofacilitator).
+
+## Representative routes
+
+<RouteTable
+  caption="Content production. All routes are Treehouse-internal."
+  routes={[
+    { method: "GET", path: "/admin/content/posts", handler: "PostController.list", notes: "Filter by status, author, tag." },
+    { method: "POST", path: "/admin/content/posts", handler: "PostController.create", notes: "New draft." },
+    { method: "GET", path: "/admin/content/posts/:id/edit", handler: "PostController.edit", notes: "Rich-text editor." },
+    { method: "POST", path: "/admin/content/posts/:id/publish", handler: "PostController.publish", notes: "Updates status; clears CDN; queues digest." },
+    { method: "POST", path: "/admin/content/posts/:id/ai-suggest", handler: "PostController.aiSuggest", notes: "Calls OpenAI; logs to LLM-trace table." },
+    { method: "GET", path: "/admin/content/summaries", handler: "SummaryController.list", notes: "Board summaries; one per closed board." },
+    { method: "POST", path: "/admin/content/summaries/:id/generate", handler: "SummaryController.generate", notes: "Triggers AI summarization handler in dispenserd." },
+    { method: "GET", path: "/admin/content/assets", handler: "AssetController.list", notes: "Marketing copy library." },
+    { method: "GET", path: "/admin/content/assets/:id/revisions", handler: "AssetController.revisions", notes: "Versioned history." },
+  ]}
+/>
+
+## Headline flow: draft post → published
+
+```
+Step 1: Author clicks "New post" in /admin/content/posts.
+Step 2: Writes draft in TinyMCE editor; autosave every 30s.
+Step 3: Optional: POST /admin/content/posts/:id/ai-suggest →
+        OpenAI completion appended to a suggestions panel.
+Step 4: Author marks post "ready for review" → notification to editor.
+Step 5: Editor approves → POST /admin/content/posts/:id/publish.
+Step 6: PostController flips status, fires `publish_post` dispenserd job.
+Step 7: dispenserd handler purges CDN, posts to social (when wired),
+        queues digest email rollup.
+Step 8: Post becomes visible at /blog/:slug for public consumption.
+```
+
+<Callout type="note" title="AI involvement here is not the strangest cron">
+  The <code>ai-suggest</code> endpoint above is a passive author tool. The
+  more remarkable AI workflow — a cron that proactively drafts promotional
+  posts and threads them back into specific boards under a privileged author
+  account — lives in [/features/ai-cofacilitator](/currnt-unpacked/features/ai-cofacilitator).
+</Callout>
+
+<Callout type="dormant" title="Rev.com transcription">
+  Board-call audio used to be uploaded here and sent to Rev.com via API for
+  human transcription. The pipeline was replaced by an in-house Whisper job
+  in 2023; the Rev.com client code is unused but still present.
+</Callout>

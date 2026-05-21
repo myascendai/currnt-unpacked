@@ -1,0 +1,75 @@
+---
+letter: "G"
+title: "Mobile + Service APIs"
+summary: "REST endpoints used by the iOS app and a thin layer of service-to-service integrations. The only Currnt surface that doesn't render HTML."
+surface: "mobile-api"
+routePrefixes:
+  - "/api/v1/*"
+  - "/api/svc/*"
+controllerCount: 3
+headlineFlow: "iOS login → board feed"
+order: 8
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Mobile + Service APIs
+
+The only surface that doesn&apos;t emit HTML. Three controllers covering JSON endpoints for the iOS app and a small set of service-to-service integrations (webhooks in, webhooks out).
+
+By the freeze, the iOS app had been unpublished from the App Store for about two years, so the `/api/v1/*` surface mostly served whatever legacy installations were still running. The service-API layer was actively used through to the freeze.
+
+## What it covers
+
+- **`/api/v1/*`** — JSON for the iOS app. Auth via a token issued at login, passed in the `Authorization: Bearer` header. Coverage matches the iOS feature set: boards, posts, profile, basic outreach.
+- **`/api/svc/*`** — service-to-service. Used by the in-house Whisper transcription job, the AI co-facilitator process (when it called out from a different host), and one or two analytics consumers.
+- **Inbound webhooks** — for Hunter.io enrichment results, Stripe Connect transfer status, and (historically) Calendly / Zoom callbacks.
+
+## Representative routes
+
+<RouteTable
+  caption="API routes — JSON only, no Twig views."
+  routes={[
+    { method: "POST", path: "/api/v1/auth/login", handler: "ApiAuthController.login", notes: "Email + password; returns bearer token." },
+    { method: "POST", path: "/api/v1/auth/refresh", handler: "ApiAuthController.refresh", notes: "Refresh long-lived session token." },
+    { method: "GET", path: "/api/v1/boards", handler: "ApiBoardController.list", notes: "Boards the authed user has access to." },
+    { method: "GET", path: "/api/v1/boards/:id", handler: "ApiBoardController.detail" },
+    { method: "GET", path: "/api/v1/boards/:id/posts", handler: "ApiBoardController.posts", notes: "Paginated; cursor in `since` param." },
+    { method: "POST", path: "/api/v1/boards/:id/posts", handler: "ApiBoardController.createPost", notes: "Plain-text body." },
+    { method: "GET", path: "/api/v1/profile", handler: "ApiProfileController.show" },
+    { method: "PATCH", path: "/api/v1/profile", handler: "ApiProfileController.update" },
+    { method: "POST", path: "/api/svc/transcribe/callback", handler: "SvcController.transcribeCallback", notes: "In-house Whisper job posts result back." },
+    { method: "POST", path: "/api/svc/hunter/callback", handler: "SvcController.hunterCallback", notes: "Email-enrichment results." },
+    { method: "POST", path: "/api/svc/stripe/webhook", handler: "SvcController.stripeWebhook", notes: "Connect transfer status updates." },
+  ]}
+/>
+
+## Headline flow: iOS login → board feed
+
+```
+Step 1: User opens iOS app; app POSTs /api/v1/auth/login with stored credentials.
+Step 2: ApiAuthController.login verifies SHA-256 password hash, issues a
+        bearer token (random 48-byte hex), persists session row.
+Step 3: App makes GET /api/v1/boards with the bearer token.
+Step 4: ApiBoardController.list returns JSON list of boards the user can see.
+Step 5: User taps a board; app GETs /api/v1/boards/:id and
+        /api/v1/boards/:id/posts in parallel.
+Step 6: User posts a reply; app POSTs /api/v1/boards/:id/posts with text.
+Step 7: Server fans out notifications (push and email) via dispenserd lane
+        `notify`.
+```
+
+<Callout type="dormant" title="Calendly / Zoom webhooks">
+  The <code>/api/svc/calendly</code> and <code>/api/svc/zoom</code> webhook
+  handlers exist but are unrouted from any live integration. The controllers
+  are intact in case those integrations are ever re-enabled. See
+  [/sunset](/currnt-unpacked/sunset).
+</Callout>
+
+<Callout type="warning" title="Auth on the API surface">
+  Bearer-token auth here shares the same password backend as the web app —
+  meaning the same SHA-256 hashing weakness applies. There is no rate limit
+  on <code>/api/v1/auth/login</code>. Both are covered on the
+  [security postmortem](/currnt-unpacked/security).
+</Callout>

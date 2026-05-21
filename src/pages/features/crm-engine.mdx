@@ -1,0 +1,116 @@
+---
+title: "The CRM engine"
+description: "How 15M prospects ended up in the database, and the rotating fleet of SMTP accounts, LinkedIn scrapers, and enrichment APIs that kept reaching them. The growth motion that bypassed the marketing site."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# The CRM engine
+
+Inside Treehouse, behind a route prefix most people never see, is the engine that did the actual growth work at Currnt. **15 million prospects, ~80 million outreach emails sent over the platform&apos;s lifetime**, a rotation of SMTP accounts that kept the volume below per-account thresholds, an internal LinkedIn-scraping bot fleet, and three enrichment integrations (one current, two dormant).
+
+This is where the company really lived, in the sense that it&apos;s where most engineering effort went and where most revenue came from. The [Public web](/currnt-unpacked/domains/a-public-web) was a storefront. The CRM engine was the salesfloor.
+
+## What&apos;s in the database
+
+The CRM data lives in a cluster of tables described on [the data-model page](/currnt-unpacked/architecture/data-model#cluster-1-prospects-and-friends). Five highlights:
+
+- **`prospects`** — 15M rows. Each row is one identified contact with identity, enrichment, and engagement fields.
+- **`prospect_companies`** — denormalized employer roll-up.
+- **`prospect_segments`** — internal grouping for outreach targeting.
+- **`campaign_membership`** — many-to-many between prospects and outreach campaigns.
+- **`email_sends`** — ~80M rows; one row per per-recipient send.
+
+## How prospects get in
+
+Three pipelines, in rough order of volume:
+
+### 1. Bulk CSV import
+
+Staff drop a CSV into Treehouse → `POST /admin/prospects/import` queues an `import_prospects` job in [dispenserd](/currnt-unpacked/architecture/dispenserd). The import handler:
+
+1. Streams the CSV row-by-row.
+2. Normalizes (lowercase email, trim whitespace, parse name parts).
+3. Looks up potential dupes by exact-email then by domain + name.
+4. Inserts new rows; updates duplicates with merged fields.
+5. Writes any ambiguous matches to `prospect_dedup_candidates` for human review.
+
+Most CSV imports come from purchased B2B lists; some come from event attendee exports.
+
+### 2. The "Smash" LinkedIn scraping fleet
+
+A set of dedicated worker hosts, internally called **Smash**, runs a fleet of LinkedIn scraping bots. Each bot:
+
+- Operates from a harvested LinkedIn account (rotated periodically).
+- Routes through a residential-proxy IP.
+- Crawls a queue of profile URLs derived from search results, board-participation history, and seed-list ingestion.
+- Pulls structured fields (title, employer, recent activity) and writes back to `prospects`.
+
+This is the most operationally fragile pipeline — LinkedIn account bans require continuous account/proxy rotation — and the most legally complicated. It is preserved here in description because it is part of the system&apos;s actual shape, without endorsing the practice.
+
+<Callout type="warning" title="A note on this pipeline">
+  Scraping LinkedIn at this scale exists in a contested zone (Terms of Service
+  vs <em>hiQ v. LinkedIn</em>-style precedents). The pipeline was operationally
+  central; it is documented here as part of an honest archive, not as a
+  recommendation.
+</Callout>
+
+### 3. Email enrichment via Hunter.io
+
+For prospects ingested without an email, the **`enrich`** dispenserd lane calls Hunter.io with the prospect&apos;s domain + name parts and writes back a confidence-scored guess. Hunter.io is the surviving enrichment integration; **Lusha** previously played a similar role and is dormant (see [/sunset](/currnt-unpacked/sunset)).
+
+## How prospects get reached
+
+Outbound at scale required defeating a few realities at once:
+
+1. **Per-account send limits.** A single Gmail or workspace account can&apos;t sustainably send tens of thousands of cold emails per day. So Currnt maintained a **pool of SMTP accounts** — Google Workspace, Microsoft 365, and assorted others — and rotated through them per send.
+2. **Per-domain reputation.** Sending all outreach from one domain torches its deliverability. So multiple "look-alike" domains were rotated too, with appropriate SPF/DKIM/DMARC plumbing per domain.
+3. **Mandrill as fallback.** When the rotating-account pool was unhealthy (high bounce, recent suspensions), traffic could flip to Mandrill (now Mailchimp Transactional) for transactional sends.
+
+The rotation logic lives in the SMTP account dispatcher, queried by the `send_outreach` dispenserd handler on each send. Per-account health (bounce rate, complaint rate, suspension flags) is tracked in `smtp_accounts` and surfaced on the [operations email-health dashboard](/currnt-unpacked/domains/f-operations).
+
+## The campaign lifecycle
+
+```
+Step 1: SDR opens /admin/outreach/campaigns and clicks "New campaign."
+Step 2: Selects a saved segment, a template (one of 177 in views/emails/),
+        a schedule, and an "A/B" split if applicable.
+Step 3: POST /admin/outreach/campaigns creates the campaign row.
+Step 4: When the schedule fires, CampaignController.send fans out one
+        send_outreach dispenserd job per recipient — potentially tens of
+        thousands of jobs.
+Step 5: Workers in the outreach cohort drain the lane:
+          - For each job, pick the next healthy SMTP account in rotation.
+          - Render the template with the recipient's data.
+          - Send via SMTP.
+          - Log the send to email_sends.
+          - On bounce/complaint, update smtp_accounts health.
+Step 6: Tracked links (open pixel + click redirect) write rows to email_events.
+Step 7: Replies hit a parsing webhook (InboundController.parse) which
+        matches to prospect by Message-ID threading and writes back
+        engagement state.
+Step 8: SDR sees replies in /admin/prospects, decides whether to convert
+        the prospect into a board invite (see the
+        [Treehouse headline flow](/currnt-unpacked/domains/b-treehouse#the-headline-flow-sdr-contact--board-invite)).
+```
+
+## The dedup problem
+
+When you accumulate 15M prospects from many sources over many years, you accumulate a lot of near-duplicates: the same person with two emails; the same person at two employers; the same person under a maiden name. Dedup is a persistent operation:
+
+- A nightly cron runs `dedup_prospects` over a rolling window, producing candidate-pair rows.
+- A Treehouse view surfaces them to staff for human resolution.
+- Confirmed pairs go through `MemberController.merge` if the prospects have linked user accounts, or a similar prospect-level merge if not.
+
+Auto-merge is deliberately not used. The cost of a false-positive merge (collapsing two real people) is much higher than the cost of leaving two near-dupes side by side.
+
+## What this engine wasn&apos;t
+
+Not a CDP. Not a marketing-automation platform. Not a sales CRM you&apos;d hand to a customer. It is **purpose-built outbound infrastructure** for a single growth motion — generate-list, enrich, send, parse-replies, hand-warm-leads-to-sales — and it does that one motion very thoroughly.
+
+</BaseLayout>

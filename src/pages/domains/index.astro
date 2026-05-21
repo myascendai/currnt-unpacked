@@ -5,83 +5,27 @@ import SurfaceTile from "~/components/mdx/SurfaceTile.astro";
 import TileGrid from "~/components/mdx/TileGrid.astro";
 
 const all = await getCollection("domains");
-const domains = all
-  .slice()
-  .sort((a, b) => a.data.order - b.data.order);
-
-// Placeholder entries for the domains not yet authored, so the index page
-// shows the full product map even while phase-2 content is pending.
-const placeholders = [
-  {
-    letter: "A",
-    title: "Public web",
-    summary:
-      "Marketing site, blog, board catalog, signup, login. Sails views served from the same monolith.",
-    slug: null,
-  },
-  {
-    letter: "C",
-    title: "Boards engine",
-    summary:
-      "Engagement lifecycle: briefing, expert recruitment, conversation, transcript, deliverable.",
-    slug: null,
-  },
-  {
-    letter: "D",
-    title: "Content production",
-    summary:
-      "Workflow for blog posts, board summaries, marketing assets, and the AI co-facilitator hooks.",
-    slug: null,
-  },
-  {
-    letter: "E",
-    title: "Members & accounts",
-    summary:
-      "User and account management, segmentation, lifecycle status, dedup of duplicate accounts.",
-    slug: null,
-  },
-  {
-    letter: "F",
-    title: "Operations & ops",
-    summary:
-      "Billing, invoicing, payouts (formerly Gnosis Safe — dormant), legal/NDA tracking, support views.",
-    slug: null,
-  },
-  {
-    letter: "Corp",
-    title: "Corporate portals",
-    summary:
-      "Client-branded sub-experiences for enterprise customers running their own advisory boards.",
-    slug: null,
-  },
-];
-
-// Pull placeholders only for letters not yet authored.
-const authoredLetters = new Set(domains.map((d) => d.data.letter));
-const phase2 = placeholders.filter((p) => !authoredLetters.has(p.letter));
+const domains = all.slice().sort((a, b) => a.data.order - b.data.order);
 ---
 
 <BaseLayout
   title="Product domains"
-  description="Seven domains comprising the Currnt product surface. Each gets a page with route table, headline flow diagram, and dormant-feature catalog."
+  description="Eight domains comprising the Currnt product surface. Each gets a page with route table, headline flow, and dormant-feature catalog."
 >
   <h1>Product domains</h1>
   <p class="lede">
-    Currnt&apos;s product surface broke into <strong>six domains</strong>
-    (A–F) plus a <strong>Corporate</strong> meta-domain for client-branded
-    enterprise portals. The full PRD enumerates ~80 user flows across them.
-    Each domain page here pairs a curated route table with a sequence diagram
-    of the domain&apos;s headline flow and a list of features that went
-    dormant before the freeze.
+    Currnt&apos;s product surface broke into <strong>six numbered domains</strong>
+    (A–F), a <strong>Corporate</strong> meta-domain for client-branded
+    enterprise portals, and a <strong>Mobile + Service API</strong> surface
+    (G) that emits JSON instead of HTML. Together they cover ~80 user flows
+    across a 2,278-line routes file.
   </p>
 
-  <p class="status-note">
-    For MVP, only domain <strong>B (Treehouse)</strong> is fully authored — it
-    defines the page pattern. The remaining six are stubbed below; full
-    write-ups land in phase 2.
+  <p class="lede">
+    Each page pairs a curated route table with the domain&apos;s headline
+    flow and a list of features that went dormant before the freeze.
   </p>
 
-  <h2>Authored</h2>
   <TileGrid columns={2}>
     {
       domains.map((d) => (
@@ -96,78 +40,10 @@ const phase2 = placeholders.filter((p) => !authoredLetters.has(p.letter));
     }
   </TileGrid>
 
-  {
-    phase2.length > 0 && (
-      <>
-        <h2>Phase 2 (placeholders)</h2>
-        <TileGrid columns={2}>
-          {phase2.map((p) => (
-            <div class="placeholder-tile">
-              <span class="placeholder-tile__kicker">{p.letter}</span>
-              <span class="placeholder-tile__title">{p.title}</span>
-              <span class="placeholder-tile__body">{p.summary}</span>
-              <span class="placeholder-tile__badge">Phase 2</span>
-            </div>
-          ))}
-        </TileGrid>
-      </>
-    )
-  }
-
   <style>
     .lede {
       color: var(--fg-soft);
       max-width: 65ch;
-    }
-    .status-note {
-      font-size: 0.92rem;
-      color: var(--fg-muted);
-      padding: 0.75rem 1rem;
-      background: var(--bg-soft);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      margin: 1rem 0 2rem 0;
-    }
-    .placeholder-tile {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-      padding: 1.1rem 1.2rem;
-      border: 1px dashed var(--border);
-      border-radius: 6px;
-      background: var(--bg);
-      color: var(--fg-muted);
-      position: relative;
-    }
-    .placeholder-tile__kicker {
-      font-size: 0.72rem;
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--fg-muted);
-    }
-    .placeholder-tile__title {
-      font-family: var(--font-display);
-      font-size: 1.2rem;
-      font-weight: 500;
-      color: var(--fg-soft);
-    }
-    .placeholder-tile__body {
-      font-size: 0.92rem;
-      color: var(--fg-muted);
-      line-height: 1.5;
-    }
-    .placeholder-tile__badge {
-      position: absolute;
-      top: 1rem;
-      right: 1.1rem;
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: var(--fg-muted);
-      background: var(--bg-soft);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      padding: 0.1rem 0.4rem;
     }
   </style>
 </BaseLayout>

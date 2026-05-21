@@ -10,13 +10,13 @@ const stats = [
   { value: "140 GB", label: "production data" },
   { value: "62", label: "scheduled cron jobs" },
   { value: "177", label: "email templates" },
-  { value: "Dec 2024", label: "codebase frozen", note: "commit 192a21e" },
+  { value: "Dec 2024", label: "codebase frozen" },
 ];
 ---
 
 <BaseLayout
   title="currnt-unpacked"
-  description="A static archive of the Currnt platform — architecture, history, and post-mortem of a 9-year-old SailsJS monolith frozen in Dec 2024."
+  description="A static archive of the Currnt platform — architecture, history, and post-mortem of a nine-year-old SailsJS monolith frozen in Dec 2024."
   wide
 >
   <section class="hero">
@@ -27,12 +27,12 @@ const stats = [
     <p class="hero__lede">
       <strong>Currnt</strong> — originally <em>Expertboards</em>, then{" "}
       <em>Convetit</em> — was a B2B expert-network and market-research platform
-      that ran from ~2015 until its codebase was frozen on
-      <code>commit 192a21e</code> in December 2024. A SailsJS monolith on a
-      single VM, a 15M-row outreach engine, a 33-controller internal admin, and
-      a homegrown HTTP queue keeping the whole thing moving. This site is the
-      archaeological record: what was built, how it fit together, what was
-      sunset, and what was still planned the day the lights went out.
+      that ran from ~2015 until its codebase was frozen in December 2024. A
+      SailsJS monolith on a single application host, a 15M-row outreach
+      engine, a 33-controller internal admin, and a homegrown HTTP queue
+      keeping the whole thing moving. This site is the archaeological record:
+      what was built, how it fit together, what was sunset, and what was
+      still planned the day the lights went out.
     </p>
     <StatStrip stats={stats} />
   </section>
@@ -48,9 +48,9 @@ const stats = [
         title="Architecture"
         kicker="Bones"
       >
-        SailsJS monolith on http02, MySQL 5.5 + Elasticsearch 2.4 on db01,
-        Redis for sessions, and a custom HTTP queue called{" "}
-        <code>dispenserd</code> orchestrating 13 Supervisord workers.
+        Two hosts, a SailsJS monolith, MySQL 5.5 + Elasticsearch 2.4, Redis,
+        and a custom HTTP queue called <code>dispenserd</code> orchestrating
+        a Supervisord-managed worker fleet.
       </SurfaceTile>
 
       <SurfaceTile
@@ -58,9 +58,19 @@ const stats = [
         title="Product domains"
         kicker="Surface area"
       >
-        Six product domains (A–F) plus Corporate, mapped to ~80 user flows and a
-        2,278-line routes file. Each gets its own page with route table and
-        headline flow diagram.
+        Six product domains (A–F) plus Corporate, mapped to ~80 user flows
+        and a 2,278-line routes file. Each gets its own page with route table
+        and headline flow.
+      </SurfaceTile>
+
+      <SurfaceTile
+        href="/features/crm-engine"
+        title="Feature deep-dives"
+        kicker="The interesting parts"
+      >
+        Two standalone tours: the 15M-row CRM and outreach engine, and the
+        AI co-facilitator cron that wrote promotional content for a
+        privileged author account.
       </SurfaceTile>
 
       <SurfaceTile
@@ -68,19 +78,20 @@ const stats = [
         title="Sunset features"
         kicker="What was let go"
       >
-        The engagement marketplace, MetaMask auth, Gnosis Safe payouts,
-        Calendly, Lusha, Zoom, NDA flow, Rev.com transcription. Eight features
-        that had budget once and then didn&apos;t.
+        Eight features that had budget once and then didn&apos;t: an engagement
+        marketplace, MetaMask auth, Gnosis Safe payouts, Calendly, Lusha,
+        Zoom, an NDA flow, Rev.com transcription.
       </SurfaceTile>
 
-      <SurfaceTile
-        href="/colophon"
-        title="How this site is built"
-        kicker="Meta"
-      >
-        Astro + Svelte 5 + Tailwind v4 + MDX, deployed to GitHub Pages. The
-        stack, the design choices, and the framing of this project as both
-        portfolio and archive.
+      <SurfaceTile href="/timeline" title="Timeline" kicker="The arc">
+        Expertboards (2015) → Convetit (2016) → Currnt (2020) → frozen
+        December 2024. Plus the trail of dormant domains.
+      </SurfaceTile>
+
+      <SurfaceTile href="/security" title="Security postmortem" kicker="Calibrated">
+        A measured look at what an unmaintained nine-year-old stack looks
+        like under audit: EOL versions, plaintext secrets, weak password
+        hashes, ambient API tokens.
       </SurfaceTile>
     </TileGrid>
   </section>
@@ -92,21 +103,21 @@ const stats = [
       conventions and audience.
     </p>
     <TileGrid columns={4}>
-      <SurfaceTile href="/architecture" title="Public web" kicker="A">
-        Marketing site, blog, board catalog, signup, login. Sails views served
-        from the same monolith.
+      <SurfaceTile href="/domains/a-public-web" title="Public web" kicker="A">
+        Marketing site, blog, board catalog, signup, login. Sails views
+        served from the same monolith.
       </SurfaceTile>
-      <SurfaceTile href="/architecture" title="Corporate portals" kicker="Corp">
-        Client-branded sub-experiences for enterprise customers running their
-        own advisory boards.
+      <SurfaceTile href="/domains/corp-corporate" title="Corporate" kicker="Corp">
+        Client-branded sub-experiences for enterprise customers running
+        their own advisory boards.
       </SurfaceTile>
       <SurfaceTile href="/domains/b-treehouse" title="Treehouse" kicker="B–F">
-        The internal back-office. 33 controllers, 8 pillars, the actual seat of
-        operations.
+        The internal back-office. 33 controllers, 8 pillars, the actual seat
+        of operations.
       </SurfaceTile>
-      <SurfaceTile href="/architecture" title="Mobile + Service APIs" kicker="API">
-        REST endpoints used by the iOS app and a thin layer of service-to-service
-        integrations.
+      <SurfaceTile href="/domains/g-mobile-api" title="Mobile + Service APIs" kicker="API">
+        REST endpoints used by the iOS app and a thin layer of
+        service-to-service integrations.
       </SurfaceTile>
     </TileGrid>
   </section>

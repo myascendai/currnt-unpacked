@@ -1,0 +1,102 @@
+---
+title: "Glossary"
+description: "Terms used across this site. The product-domain language, the operational vocabulary, and the internal nicknames worth knowing."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# Glossary
+
+Terms used throughout this site, with brief definitions calibrated to the level of background a typical reader will need.
+
+## Product vocabulary
+
+**Board**
+: A time-boxed advisory engagement: an enterprise client commissions a question, a panel of 8–15 industry experts discusses it asynchronously over several weeks, and Currnt analysts produce a deliverable. The core product unit.
+
+**Sprint**
+: A shorter board format (one week, smaller panel). Stored in the same data model as a board, distinguished by a duration flag.
+
+**Brief**
+: The document the client provides at the start of a board, describing the question, target expert profile, and deliverable expectations.
+
+**Deliverable**
+: The final report produced from a closed board. Written by an analyst, includes synthesis plus direct expert quotes.
+
+**Expert**
+: A board participant in the expert role. Compensated per board.
+
+**Sponsor / Client**
+: The enterprise customer who commissioned the board. Has access to the board through the [corporate portal](/currnt-unpacked/domains/corp-corporate).
+
+**Member**
+: A user account that is neither expert nor staff nor client — typically an interested visitor who signed up.
+
+**Engagement marketplace**
+: A defunct self-service flow where experts could browse open briefs and self-apply. Replaced by curated invitation; schema preserved.
+
+## Operational vocabulary
+
+**Treehouse**
+: Currnt&apos;s internal back-office. 33 controllers, 8 functional pillars. Where every staff workflow happens. Not user-facing.
+
+**Pillar**
+: One of eight functional groupings inside Treehouse (Prospects, Outreach, Boards, Content, Members, Operations, Analytics, System). A cluster of controllers + views + jobs.
+
+**SDR**
+: Sales Development Representative. The Treehouse user role most likely to be opening Prospects and Outreach pages.
+
+**Campaign**
+: One outbound outreach blast: a saved prospect segment + an email template + a schedule. Lives in the [CRM engine](/currnt-unpacked/features/crm-engine).
+
+**Segment**
+: A saved filter over the prospects table, used for outreach targeting.
+
+**Smash**
+: Internal nickname for the fleet of LinkedIn-scraping workers used to enrich prospects with employer, title, and seniority signals.
+
+## Infrastructure vocabulary
+
+**dispenserd**
+: Currnt&apos;s homegrown HTTP-poll queue. 5 lanes, 13 worker processes, 19 handlers. See [/architecture/dispenserd](/currnt-unpacked/architecture/dispenserd).
+
+**Lane**
+: A priority class in dispenserd. Each handler is bound to a lane. Workers are configured per-lane.
+
+**Handler**
+: A function in the 4,591-line worker entrypoint that processes one type of dispenserd job.
+
+**Worker (in this codebase)**
+: One of 13 long-running Node processes managed by Supervisord, draining dispenserd lanes. Each one runs the same code; lane configuration distinguishes their workload.
+
+**Cron job**
+: One of 62 scheduled entries on the application host&apos;s crontab. Most enqueue dispenserd jobs; a few run inline.
+
+**SMTP rotation**
+: The pool of email-sending accounts (Google Workspace, Microsoft 365, others) used to send outreach without burning any single account&apos;s reputation. Managed via a dispatcher inside the `send_outreach` handler.
+
+**AI co-facilitator**
+: The cron-driven OpenAI process that drafts and posts promotional content into boards every five minutes under a single privileged author account. See [/features/ai-cofacilitator](/currnt-unpacked/features/ai-cofacilitator).
+
+## Tech-stack shorthand
+
+**Sails / SailsJS**
+: The Node.js MVC framework Currnt is built on (version 0.12.x, released 2016). Provides routing, ORM-ish models, sessions, sockets.
+
+**Twig**
+: The PHP-derived template engine Sails uses for HTML rendering. Most Currnt views are `.swig` (the older Sails twig variant) or similar.
+
+**PM2**
+: A Node process manager. The Currnt app runs as a 5-worker PM2 cluster on the application host.
+
+**Supervisord**
+: A general-purpose process supervisor used for the worker fleet. Restarts workers on crash, tails their logs.
+
+**Pagefind**
+: The static-site search engine used on this archive site (not by Currnt itself).
+
+</BaseLayout>

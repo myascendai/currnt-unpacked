@@ -1,0 +1,98 @@
+---
+title: "Security postmortem"
+description: "A calibrated look at what a nine-year-old, lightly-maintained SailsJS platform looks like under audit. Categorical disclosure of the structural and operational issues, without quoting specific secrets, identifiers, or live endpoints."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# Security postmortem
+
+This page summarizes the security posture of the Currnt platform as observed during the December 2024 freeze. It is **categorical disclosure**: structural and operational issues are described in terms of their shape and consequence, not in terms of specific secret values, IP addresses, internal hostnames, or live endpoints. The platform was dormant by the time of inspection; the issues here would not have been published if it were not.
+
+The framing is calibrated: this is not a "look how broken it was" piece. The Currnt platform was operationally reliable for many years and many of the issues below are typical of a long-lived web monolith run by a small team with finite attention. Calling them out is part of an honest archive.
+
+## 1 · End-of-life dependencies
+
+Every layer of the production stack was years past its vendor end-of-life date by 2024:
+
+- **MySQL 5.5** — EOL December 2018. About six years stale at the freeze.
+- **Elasticsearch 2.4** — EOL February 2018.
+- **Node.js 8.x** — EOL April 2020.
+- **SailsJS 0.12.x** — released February 2016; long since superseded.
+- **CentOS 8** on the half-decommissioned ops host — EOL December 2021.
+
+The application kept working because nothing in the world demanded these upgrade; absent active maintenance, none happened. The implication is the absence of years of security fixes across the stack.
+
+## 2 · Plaintext secrets in unexpected places
+
+Several secrets that should have been in environment variables or a secret manager were instead in places that are scriptable to read:
+
+- A **transactional-email provider API key** in a small operations script file on the half-decommissioned ops host. Plaintext, readable to any process with file-system access to that script.
+- **OpenAI API keys** stored per-organization in a database column (`organizations.open_ai_key`) as plaintext strings.
+- An older **service API token** appearing as a hard-coded constant inside several application controllers — used for service-to-service auth between the app host and the worker fleet, never rotated.
+
+None of these surfaces was publicly exposed, but each represents a privilege-escalation path: read access to one location yields the key.
+
+## 3 · Password hashing
+
+The `users.password` column is sized as `CHAR(40)` — exactly the width of a hex-encoded SHA-256 digest. There is no per-user salt column; the application code applies a global pepper but does not use bcrypt, argon2, scrypt, or PBKDF2.
+
+The consequence: in a hypothetical password-database disclosure, every account would be vulnerable to offline brute-force attack at full CPU/GPU speed. Migration to a modern KDF was on the roadmap and never landed.
+
+## 4 · Authentication-rate limits
+
+The web auth surface (`/login`) and the API auth surface (`/api/v1/auth/login`) share the same backend. There is no per-IP, per-account, or global rate limit on either. This is exclusively the kind of issue that matters only in conjunction with #3 above — an attacker with no list of hashes can&apos;t do much with the absence of rate-limiting alone. Combined, they form a credible exposure.
+
+## 5 · Schema as canonical (no migration tool)
+
+There is no migration-tool source of truth (no Liquibase, no Flyway, no Alembic-equivalent). Schema changes were applied manually as `ALTER TABLE` statements during low-traffic windows. The implication is more operational than security-shaped, but it matters for security in one way: there is no audit trail of who applied what schema change, when, on what authority. The database is the schema, and the schema&apos;s history is in MySQL&apos;s binlog (if retained) and in the heads of past staff.
+
+## 6 · SSH key situation
+
+A handful of SSH-key state issues observed during recon, generic enough to mention:
+
+- The legacy database host runs an OS old enough that modern OpenSSH refuses it without explicit downgrade flags (`-o HostKeyAlgorithms=+ssh-rsa`, `-o PubkeyAcceptedAlgorithms=+ssh-rsa`).
+- Several VMs have a mix of project-level and instance-level metadata keys, with different users authorized in different places. Adding a new ops key to one path doesn&apos;t guarantee it shows up where expected.
+- A small ops jumpbox is half-decommissioned but still listening on `sshd`; deciding whether to retire it required a forgotten-secrets sweep that hadn&apos;t been done at the freeze.
+
+## 7 · The LinkedIn-scraping fleet
+
+Discussed in product terms on [the CRM engine page](/currnt-unpacked/features/crm-engine#2-the-smash-linkedin-scraping-fleet). In security/legal terms, this pipeline existed in a contested zone (Terms of Service vs <em>hiQ v. LinkedIn</em>-style precedent), and depended on continuous rotation of harvested accounts and residential-proxy IPs to operate.
+
+It is preserved here as part of an honest archive of how the platform actually worked. It is not endorsed.
+
+## 8 · The AI co-facilitator&apos;s disclosure question
+
+Covered on [its own page](/currnt-unpacked/features/ai-cofacilitator#the-disclosure-question): board posts authored by an AI process were rendered identically to posts authored by humans, under a single privileged author account. Whether disclosure to board participants was sufficient is a product question, not a security one — but it&apos;s here because it&apos;s the kind of item a thorough audit would flag.
+
+## 9 · Observability of unknown destination
+
+An OpenTelemetry collector and Fluent-Bit are installed on the application host and shipping logs/metrics outward. The destination was not pinned during recon — it could be GCP-native, or it could be an external endpoint forgotten years ago. Either way, the platform&apos;s logs are leaving the production environment to somewhere, and an audit would want to confirm where.
+
+## Summary table
+
+| # | Category | Severity if exploited | Likelihood at freeze |
+|---|---|---|---|
+| 1 | EOL stack across MySQL / ES / Node / Sails / OS | Critical (CVEs accumulate over years) | Low (no public surface known) |
+| 2 | Plaintext secrets in scripts and DB columns | High (privilege escalation given file access) | Low (no public file access) |
+| 3 | SHA-256 password hashing, no salt column | Critical given a DB disclosure | Low (DB not publicly reachable) |
+| 4 | No auth rate limit | Medium combined with #3 | — |
+| 5 | No schema migration tool | Operational risk | — |
+| 6 | Mixed SSH-key state | Operational risk | — |
+| 7 | LinkedIn-scraping operations | Legal exposure | — |
+| 8 | AI co-facilitator disclosure | Reputational | — |
+| 9 | Unknown observability destination | Data leakage | — |
+
+<Callout type="note" title="What this section deliberately doesn't include">
+  No exact secret values, no exact IP addresses, no exact internal hostnames,
+  no commit hashes, and no specific table contents are quoted on this page or
+  anywhere on this site. Categorical disclosure of issues that an honest
+  archive should mention; no live attack surface.
+</Callout>
+
+</BaseLayout>

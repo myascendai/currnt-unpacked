@@ -4,7 +4,7 @@ import { glob } from "astro/loaders";
 const domains = defineCollection({
   loader: glob({ pattern: "**/*.mdx", base: "./src/content/domains" }),
   schema: z.object({
-    letter: z.string().min(1).max(3),
+    letter: z.string().min(1).max(5),
     title: z.string(),
     summary: z.string(),
     surface: z.enum([

@@ -1,10 +1,12 @@
 ---
 title: "Architecture"
-description: "The bones of Currnt: a SailsJS monolith on a single VM, MySQL 5.5 + Elasticsearch 2.4 on a second VM, Redis for sessions, a homegrown HTTP queue called dispenserd, and 13 Supervisord-managed workers."
+description: "The bones of Currnt: a SailsJS monolith on a single application host, MySQL 5.5 + Elasticsearch 2.4 on a second host, Redis for sessions, a homegrown HTTP queue called dispenserd, and a Supervisord-managed worker fleet."
 ---
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import Callout from "~/components/mdx/Callout.astro";
 import StatStrip from "~/components/mdx/StatStrip.astro";
+import SurfaceTile from "~/components/mdx/SurfaceTile.astro";
+import TileGrid from "~/components/mdx/TileGrid.astro";
 
 <BaseLayout
   title={frontmatter.title}
@@ -13,22 +15,22 @@ import StatStrip from "~/components/mdx/StatStrip.astro";
 
 # Architecture
 
-Currnt was a **SailsJS monolith** — a single Node.js process tree running on a single VM, talking to a second VM that hosted the database. After nine years of growth it was still recognizably the same shape. No microservices, no Kubernetes, no message broker beyond a homegrown HTTP-poll queue. The simplicity is part of the story.
+Currnt was a **SailsJS monolith** — a single Node.js process tree running on a single host, talking to a second host that held the database and search index. After nine years of growth it was still recognizably the same shape. No microservices, no Kubernetes, no message broker beyond a homegrown HTTP-poll queue. The simplicity is part of the story.
 
 <StatStrip
   stats={[
-    { value: "2 VMs", label: "the entire production stack", note: "http02 + db01" },
+    { value: "2 hosts", label: "the entire production stack" },
     { value: "SailsJS", label: "0.12.x", note: "released 2016" },
     { value: "Node 8.11", label: "EOL April 2020" },
     { value: "MySQL 5.5", label: "EOL Dec 2018" },
     { value: "ES 2.4", label: "EOL Feb 2018" },
-    { value: "PM2 cluster", label: "5 workers on port 9999" },
+    { value: "PM2 cluster", label: "5 workers, one port" },
   ]}
 />
 
-## The application layer — `http02`
+## The application layer
 
-A single VM (`http02`, 10.240.0.25 / 130.211.163.74) runs the entire user-facing application. Nginx fronts five PM2-managed Node workers on port 9999. There is no second app VM. There is no autoscaler. Deploys are a manual `git pull` on `master` followed by a `pm2 reload` — no CI, no PR, no feature branches.
+A single host runs the entire user-facing application. Nginx fronts five PM2-managed Node workers on a single application port. There is no second app host. There is no autoscaler. Deploys are a manual `git pull` on `master` followed by a `pm2 reload` — no CI, no PR, no feature branches.
 
 ```
                           ┌───────────────────────────┐
@@ -38,39 +40,39 @@ A single VM (`http02`, 10.240.0.25 / 130.211.163.74) runs the entire user-facing
                                           ▼
                           ┌───────────────────────────┐
                           │ pm2 cluster (5 workers)   │
-                          │ SailsJS on :9999          │
+                          │ SailsJS on one app port   │
                           └───────────────┬───────────┘
                                           │
                   ┌───────────────────────┼───────────────────────┐
                   ▼                       ▼                       ▼
-              MySQL 5.5             Elasticsearch             Redis
-              (db01:3306)           2.4 (db01:9200)           (sessions,
-                                                              socket.io)
+              MySQL 5.5             Elasticsearch              Redis
+                                       2.4                  (sessions,
+                                                            socket.io)
 ```
 
-The workflow visible in `git log` is **direct commits to `master`** with the message `progress` — no PR discipline, no feature branches. The frozen `HEAD` is `192a21e` (Dec 18, 2024, "Update open_ai.js").
+The workflow visible in `git log` is **direct commits to `master`** with the message `progress` — no PR discipline, no feature branches. The frozen tip is a December 2024 commit titled "Update open_ai.js."
 
 <Callout type="note" title="Observability">
-  An OpenTelemetry collector (`otelopscol`, port 20201) and Fluent-Bit
-  (port 20202) are installed and shipping logs/metrics on `http02`. The
-  destination wasn&apos;t pinned during recon — could be GCP-native or a
-  forgotten external endpoint.
+  An OpenTelemetry collector and Fluent-Bit are installed and shipping
+  logs/metrics from the application host. The destination wasn&apos;t pinned
+  during recon — it could be a GCP-native sink or a forgotten external
+  endpoint.
 </Callout>
 
-## The data layer — `db01`
+## The data layer
 
-A second VM (`db01`, 10.240.0.6) hosts both **MySQL 5.5** and **Elasticsearch 2.4**. Both are years past end-of-life. The host OS only offers `ssh-rsa` / `ssh-dss` host key types — modern OpenSSH rejects it without explicit downgrade flags. The schema is 314 tables and ~140 GB of data, dominated by:
+A second host holds both **MySQL 5.5** and **Elasticsearch 2.4**. Both are years past end-of-life. The host runs an older OS that only offers `ssh-rsa` / `ssh-dss` host key types — modern OpenSSH rejects it without explicit downgrade flags. The schema is 314 tables and roughly 140 GB of data, dominated by:
 
 - **`prospects`** — 15 million rows. The CRM/outreach engine&apos;s main table.
-- **`gptlog`** — 12 GB. Logs from the AI co-facilitator (see `/features/ai-cofacilitator`).
+- A **large LLM-trace table** — about 12 GB. Logs from the AI co-facilitator (see <a href="/currnt-unpacked/features/ai-cofacilitator">/features/ai-cofacilitator</a>).
 - **`logs_*`** — assorted activity logs.
-- **`users`** — ~hundreds of thousands of accounts; password column is sized for SHA-256 (40 chars), not bcrypt.
+- **`users`** — hundreds of thousands of accounts; password column is sized for SHA-256 (40 chars), not bcrypt.
 
-Redis runs on `db01:6379` and is used for Sails session storage and Socket.io pub/sub between the cluster workers.
+Redis lives on the data host and is used for Sails session storage and Socket.io pub/sub between the cluster workers.
 
 ## The queue — `dispenserd`
 
-Async work doesn&apos;t go through Kafka, RabbitMQ, SQS, or Redis pub/sub. It goes through `dispenserd`, a **custom HTTP-poll queue** that lives in the codebase. Producers `POST` jobs to it; long-running `worker0X` VMs poll it for work over HTTP and execute handlers. There are 5 lanes (priority classes), 13 worker processes managed by Supervisord, and 19 distinct handler scripts.
+Async work doesn&apos;t go through Kafka, RabbitMQ, SQS, or Redis pub/sub. It goes through `dispenserd`, a **custom HTTP-poll queue** that lives in the codebase. Producers `POST` jobs to it; long-running worker processes poll it for work over HTTP and execute handlers. There are 5 lanes (priority classes), 13 worker processes managed by Supervisord, and 19 distinct handler scripts.
 
 ```
               ┌──────────────────────────────────────────┐
@@ -80,33 +82,48 @@ Async work doesn&apos;t go through Kafka, RabbitMQ, SQS, or Redis pub/sub. It go
                            │ (poll)
        ┌───────────────────┼───────────────────┐
        ▼                   ▼                   ▼
-   worker01            worker02            worker03 …
+    worker A            worker B            worker C …
    (Supervisord)       (Supervisord)       (Supervisord)
        │                   │                   │
        └──── 19 handlers ──┴───── 4,591-line ──┘
                                  worker entry
 ```
 
-A future page (`/architecture/dispenserd`) will go deeper on lane semantics, retry policy, and the handler-by-handler topology. For MVP this lives here as a placeholder.
+A dedicated page goes deeper on lane semantics, retry policy, and the handler-by-handler topology: <a href="/currnt-unpacked/architecture/dispenserd">/architecture/dispenserd</a>.
 
 ## The cron layer
 
-Crontab on `http02` runs **62 distinct scheduled jobs**, ranging from the obvious (digest email batches, metric rollups) to the very specific (`gpt_ai_cofac_nudging`, which every five minutes wakes the AI co-facilitator process to draft promotional posts under `ai_user_id=1`). The full list lives in the PRD; a curated cut will appear at `/architecture/cron`.
+The application host&apos;s crontab runs **62 distinct scheduled jobs**, ranging from the obvious (digest email batches, metric rollups) to the very specific — including `gpt_ai_cofac_nudging`, which every five minutes wakes the AI co-facilitator process to draft promotional posts under a single privileged author account. A standalone page tours the strangest one: <a href="/currnt-unpacked/features/ai-cofacilitator">/features/ai-cofacilitator</a>.
 
 ## The email layer
 
-177 email templates live in `views/emails/`. Sending goes through a rotating fleet of SMTP accounts plus Mandrill as a fallback. The Mandrill API key was found in plaintext in `/root/check_up` on `castle-new`; it&apos;s referenced categorically on the [security page](#) (link forthcoming in phase 3) without quoting the value.
+177 email templates live in `views/emails/`. Sending goes through a rotating fleet of SMTP accounts plus a transactional-email provider as a fallback. A provider API key was found in plaintext in an ops-script file on the decommissioned ops host; it is referenced categorically on the <a href="/currnt-unpacked/security">security page</a> without being quoted.
 
-## What&apos;s on `castle-new`
+## The decommissioned third host
 
-A third VM, `castle-new` (10.240.0.20), exists in the project but is **half-decommissioned**. No nginx, no Node, no app. Only `sshd` listens. Bash history shows it was used as a jumpbox to reach `http02` / `db01` / the worker fleet. Old artifacts (`cert_2016/`, `cert_2017/`, `cert_wc_2018/`, `dc_to_gcloud.log` from the 2021 datacenter migration) suggest it was historically the SSL certificate and ops box. It can probably be shut down without production impact, after a forgotten-secrets audit.
+A third host exists in the project but is **half-decommissioned**. No nginx, no Node, no app. Only `sshd` listens. Bash history shows it was used as a jumpbox to reach the application host, the data host, and the worker fleet. Old artifacts (certificate directories from 2016–2018, a multi-megabyte log from the 2021 datacenter-to-GCP migration, an old Python source tree) suggest it was historically the SSL certificate and ops box. It can probably be shut down without production impact, after a forgotten-secrets audit.
 
 ## Reading list for this section
 
-- `/architecture/dispenserd` — the queue in detail _(phase 2)_
-- `/architecture/workers` — Supervisord topology _(phase 2)_
-- `/architecture/data-model` — table-by-table tour of the high-value clusters _(phase 2)_
-- `/features/crm-engine` — how 15M prospects got there _(phase 3)_
-- `/features/ai-cofacilitator` — the strangest cron in the system _(phase 3)_
+<TileGrid columns={2}>
+  <SurfaceTile href="/architecture/dispenserd" title="dispenserd" kicker="Queue">
+    Lane semantics, retry policy, and how 19 handlers map across 13 workers.
+  </SurfaceTile>
+  <SurfaceTile href="/architecture/workers" title="Worker fleet" kicker="Supervisord">
+    The full Supervisord topology, what each worker does, and the 4,591-line
+    entrypoint that holds them together.
+  </SurfaceTile>
+  <SurfaceTile href="/architecture/data-model" title="Data model" kicker="314 tables">
+    A guided tour of the high-value table clusters: prospects, users, boards,
+    campaigns, logs.
+  </SurfaceTile>
+  <SurfaceTile href="/features/ai-cofacilitator" title="AI co-facilitator" kicker="Feature">
+    The strangest cron in the system, end to end.
+  </SurfaceTile>
+  <SurfaceTile href="/features/crm-engine" title="CRM engine" kicker="Feature">
+    How 15M prospects ended up in the database, and the rotating fleet that
+    keeps reaching them.
+  </SurfaceTile>
+</TileGrid>
 
 </BaseLayout>

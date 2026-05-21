@@ -1,0 +1,60 @@
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import SurfaceTile from "~/components/mdx/SurfaceTile.astro";
+import TileGrid from "~/components/mdx/TileGrid.astro";
+---
+
+<BaseLayout
+  title="Feature deep-dives"
+  description="Standalone tours of the most interesting parts of the Currnt platform: the AI co-facilitator cron and the 15M-row CRM engine."
+>
+  <h1>Feature deep-dives</h1>
+  <p class="lede">
+    Two standalone tours of the parts of Currnt that are unusual enough — or
+    central enough — to warrant their own page outside the architecture and
+    domain documentation. One is operationally critical, one is genuinely
+    strange.
+  </p>
+
+  <TileGrid columns={2}>
+    <SurfaceTile
+      href="/features/crm-engine"
+      title="The CRM engine"
+      kicker="Operations"
+    >
+      How 15M prospects got into the database, and the rotating SMTP fleet,
+      LinkedIn scrapers, and enrichment APIs that kept reaching them. The
+      growth motion that bypassed the marketing site.
+    </SurfaceTile>
+    <SurfaceTile
+      href="/features/ai-cofacilitator"
+      title="The AI co-facilitator"
+      kicker="Strangest cron"
+    >
+      Every five minutes, a script wakes up, asks GPT to draft promotional
+      copy, and posts the result inside selected advisory boards under a
+      single privileged author account. End-to-end tour.
+    </SurfaceTile>
+  </TileGrid>
+
+  <p class="more">
+    Other features worth their own page in a future phase: a guided tour of
+    Treehouse&apos;s eight pillars from the inside; a detailed dispenserd
+    handler-by-handler reference; a screenshot tour of the corporate
+    portal&apos;s branding system.
+  </p>
+
+  <style>
+    .lede {
+      color: var(--fg-soft);
+      max-width: 65ch;
+    }
+    .more {
+      color: var(--fg-muted);
+      font-size: 0.92rem;
+      margin-top: 2.5rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</BaseLayout>

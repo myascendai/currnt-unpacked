@@ -1,0 +1,75 @@
+---
+letter: "A"
+title: "Public web"
+summary: "The marketing site, blog, public board catalog, signup, and login flows — the only Currnt surface most visitors ever saw. Sails views served from the same monolith as everything else."
+surface: "public-web"
+routePrefixes:
+  - "/"
+  - "/blog/*"
+  - "/board/:slug"
+  - "/signup"
+  - "/login"
+  - "/about"
+controllerCount: 7
+headlineFlow: "Anonymous visitor → signup → first board"
+order: 1
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Public web
+
+The customer-facing storefront. A marketing site, a blog (lightly maintained for years), a catalog of public-facing advisory boards, a signup flow, and a login. By the freeze date most public traffic was bots and direct links to specific board URLs — there was no active acquisition campaign in years.
+
+Everything in this domain renders as **Sails-rendered Twig** from the same monolith that powers Treehouse. The "frontend" and the "backend" are the same Node process. There is no separate marketing-site CMS.
+
+## What lives here
+
+- **Marketing pages** — `/`, `/about`, `/how-it-works`, `/contact`, plus a handful of campaign landing pages from prior brand pushes.
+- **Blog** — `/blog`, `/blog/:slug`. Stored in MySQL, edited from inside Treehouse (see [Domain D](/currnt-unpacked/domains/d-content)).
+- **Public board catalog** — `/board`, `/board/:slug`. A read-only view onto a small subset of advisory boards that were tagged "public." Most boards are private and never appear here.
+- **Auth** — `/login`, `/signup`, `/logout`, `/forgot-password`. SHA-256 password hashes (not bcrypt — see [security](/currnt-unpacked/security)).
+- **Static legal** — `/terms`, `/privacy`, `/cookies`.
+
+## Representative routes
+
+<RouteTable
+  caption="Public-facing routes. Not exhaustive; the actual route file is 2,278 lines."
+  routes={[
+    { method: "GET", path: "/", handler: "MarketingController.home", notes: "Hero + 3 case studies + CTA." },
+    { method: "GET", path: "/about", handler: "MarketingController.about" },
+    { method: "GET", path: "/how-it-works", handler: "MarketingController.howItWorks" },
+    { method: "GET", path: "/blog", handler: "BlogController.list", notes: "Paginated; 25 per page." },
+    { method: "GET", path: "/blog/:slug", handler: "BlogController.detail", notes: "Twig view + MathJax + AI-generated summaries." },
+    { method: "GET", path: "/board", handler: "PublicBoardController.list", notes: "Public-only filter." },
+    { method: "GET", path: "/board/:slug", handler: "PublicBoardController.detail", notes: "Shows board overview; gated past first page." },
+    { method: "GET", path: "/signup", handler: "AuthController.signupPage" },
+    { method: "POST", path: "/signup", handler: "AuthController.signup", notes: "Creates user, queues welcome email, redirects to onboarding." },
+    { method: "GET", path: "/login", handler: "AuthController.loginPage" },
+    { method: "POST", path: "/login", handler: "AuthController.login", notes: "SHA-256 hash check; sets Sails session in Redis." },
+    { method: "POST", path: "/forgot-password", handler: "AuthController.forgotPassword", notes: "Generates one-time token; emails reset link." },
+  ]}
+/>
+
+## Headline flow: visitor → signed-up user → first board view
+
+```
+Step 1: Visitor lands on / from organic, ad, or direct link.
+Step 2: Clicks through to /board/:slug for a public board.
+Step 3: Sees overview + 2 of N posts; remaining gated behind signup.
+Step 4: Clicks "Join to read more" → /signup with ?return=/board/:slug.
+Step 5: POST /signup → user row + Mandrill welcome email queued via dispenserd.
+Step 6: Auto-login → redirect to /onboarding (one screen, "what brought you here").
+Step 7: POST /onboarding → user.signup_reason set → redirect to return URL.
+Step 8: User now sees full board view; activity event logged.
+```
+
+By the freeze, this flow was working but very lightly trafficked. The acquisition motion had migrated entirely to outbound (see [Domain B / Treehouse](/currnt-unpacked/domains/b-treehouse) and [/features/crm-engine](/currnt-unpacked/features/crm-engine)).
+
+<Callout type="dormant" title="What used to be here">
+  An older version of the public web had a self-service expert profile
+  (<code>/expert/:username</code>) and an &quot;apply to join a sprint&quot; flow.
+  Both are dormant — the controllers remain but no UI surfaces them. See the
+  [sunset page](/currnt-unpacked/sunset) for the full list.
+</Callout>

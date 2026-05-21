@@ -1,0 +1,82 @@
+---
+letter: "C"
+title: "Boards engine"
+summary: "The product. The thing customers actually paid for. The lifecycle of an advisory board from brief to deliverable: recruit experts, host the conversation, transcribe it, summarize it, ship it."
+surface: "mixed"
+routePrefixes:
+  - "/board/:id/*"
+  - "/admin/boards/*"
+controllerCount: 9
+headlineFlow: "Brief intake → expert recruitment → board → deliverable"
+order: 3
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Boards engine
+
+A **board** at Currnt was a time-boxed advisory engagement: a client (typically a F500 product or strategy team) commissioned a question, Currnt staff recruited a panel of 8–15 industry experts, ran a multi-week asynchronous conversation, transcribed it, summarized it, and shipped a deliverable. This domain is the machinery of that lifecycle.
+
+Internally the term "sprint" is used interchangeably for shorter engagements (one week, ~5 experts), and "board" for the longer format. The data model doesn&apos;t distinguish; it&apos;s the same table with a duration flag.
+
+## The lifecycle
+
+1. **Brief intake** — a sales rep authors the brief in Treehouse, setting topic, target industries, target seniority, deliverable format, and budget.
+2. **Expert recruitment** — Currnt staff sources from a curated list of experts plus the broader 15M-row CRM. Invites go out as personalized emails; accepts get account provisioning.
+3. **Briefing & kickoff** — accepted experts get a private kickoff post outlining the question.
+4. **Conversation** — multi-week threaded discussion. Daily summary email keeps engagement high.
+5. **Transcript** — board content is exported and (formerly) sent to a transcription service; now handled in-house.
+6. **Deliverable** — a Currnt analyst writes the final report, mixing direct expert quotes, synthesis, and recommendations.
+7. **Closure** — board archived, deliverable shipped to client portal (see [Corporate](/currnt-unpacked/domains/corp-corporate)).
+
+## Representative routes
+
+<RouteTable
+  caption="Boards-engine routes spanning customer-facing and Treehouse views."
+  routes={[
+    { method: "GET", path: "/admin/boards", handler: "BoardController.list", notes: "Treehouse list view; filter by status." },
+    { method: "POST", path: "/admin/boards", handler: "BoardController.create", notes: "Brief intake form." },
+    { method: "GET", path: "/admin/boards/:id", handler: "BoardController.detail", notes: "Internal admin view." },
+    { method: "GET", path: "/admin/boards/:id/recruitment", handler: "BoardController.recruitment", notes: "Expert sourcing list + invite UI." },
+    { method: "POST", path: "/admin/boards/:id/invite", handler: "BoardController.invite", notes: "Queues per-recipient invite email." },
+    { method: "GET", path: "/admin/boards/:id/transcripts", handler: "BoardController.transcripts", notes: "Per-board conversation log." },
+    { method: "POST", path: "/admin/boards/:id/summarize", handler: "BoardController.summarize", notes: "Triggers AI summarization handler." },
+    { method: "GET", path: "/board/:slug", handler: "BoardController.publicShow", notes: "Public board view; gated past first page." },
+    { method: "GET", path: "/board/:slug/discuss", handler: "BoardController.discuss", notes: "Member-only conversation view." },
+    { method: "POST", path: "/board/:slug/post", handler: "BoardController.post", notes: "New post or reply; rich-text content." },
+    { method: "GET", path: "/board/:slug/transcript", handler: "BoardController.transcript", notes: "Member-only full transcript download." },
+  ]}
+/>
+
+## Headline flow: brief → kickoff
+
+```
+Step 1: Sales rep submits brief at /admin/boards (POST).
+Step 2: BoardController.create writes board + initial brief revision.
+Step 3: Recruitment view at /admin/boards/:id/recruitment shows
+        candidate experts pulled from CRM + curated list.
+Step 4: Staff selects N candidates → POST /admin/boards/:id/invite.
+Step 5: dispenserd lane `send_outreach` fans out N invite emails.
+Step 6: Expert clicks tracked link → /board/:slug/accept?token=…
+Step 7: AuthController upserts user, joins to board, assigns 'expert' role.
+Step 8: BoardController.kickoff fires when N accepts ≥ threshold,
+        posting the kickoff message and notifying all experts.
+```
+
+The most-engineered step is **(3) Recruitment.** Candidate scoring blends prospect attributes (industry, seniority, recency) with prior-board participation, with a hand-tunable weight in each board&apos;s settings.
+
+<Callout type="dormant" title="The engagement marketplace">
+  An earlier version of this domain had a self-service marketplace: experts
+  could browse open briefs and self-apply, with sponsors approving. The
+  schema + controllers are intact (<code>EngagementMarketplaceController</code>,
+  <code>marketplace_applications</code> table) but zero rows have been
+  written since 2023. Replaced by curated invitation flow.
+</Callout>
+
+<Callout type="dormant" title="Calendly / Zoom">
+  A 1:1 expert-call workflow once piggybacked on Calendly + Zoom integrations
+  to schedule and record one-on-one expert interviews as a side product. Both
+  integrations are dormant — webhooks no longer routed, credentials may not
+  be valid. See [/sunset](/currnt-unpacked/sunset).
+</Callout>

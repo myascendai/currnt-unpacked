@@ -1,0 +1,80 @@
+---
+title: "Timeline"
+description: "Expertboards (2015) → Convetit (2016) → Currnt (2020) → frozen December 2024. The brand evolution, domain redirects, and arc of a nine-year B2B expert-network platform."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# Timeline
+
+The platform now archived as Currnt was originally called something else, and before that something else again. The codebase, the database, and the operational shape of the company all carry forward from those earlier eras, sometimes visibly. This page traces the arc.
+
+## ~2015 — Expertboards
+
+The original brand. A B2B platform for "advisory boards" — time-boxed asynchronous expert engagements commissioned by enterprise clients. The early product surface was simpler than what existed by the freeze: a marketing site, a board-discussion engine, a small back-office.
+
+The Sails application&apos;s root code directory (`/platformnew/`) was created in this era. The first commits in `git log` predate any of the renames; some controllers in the codebase still carry `Expertboards`-era naming in their docstrings.
+
+Legacy domains that still redirect to current URLs include `expertboards.com` and `sflnow.com`.
+
+## ~2016 — Convetit
+
+The first rebrand. New name (a portmanteau evoking "convert" + a Latinate flourish), new visual identity, same codebase. Two domains operated in parallel for years: `convetit.com` as the canonical, `convet.it` as a short link.
+
+This era marks the **largest architectural decisions** in the codebase: SailsJS 0.12.x as the framework (released February 2016), Node 8.x as the runtime, MySQL 5.5 as the database, Elasticsearch 2.4 as the search index. Most of what feels "legacy" today was, at the time, a normal choice.
+
+This is also the era when the CRM engine started taking real shape. The `prospects` table grew from tens of thousands to millions during the 2018–2020 window. Outreach automation became the dominant growth motion.
+
+## 2020–2021 — The datacenter migration and the Currnt rename
+
+Two important transitions, close together.
+
+In 2021, the platform moved from a self-managed datacenter onto **Google Cloud Platform**. A migration log preserved on the half-decommissioned ops host runs to several megabytes and documents the cutover. The legacy ops host had been the SSL certificate authority and ops jumpbox; its modern descendant is essentially an SSH gateway.
+
+Within a year of the migration, the brand became **Currnt** — the current name, used in the database, in the codebase&apos;s newer modules, and in customer-facing communication.
+
+## ~2022–2024 — Mature operations, dormant features
+
+By 2022, the platform&apos;s shape was settled. The product surface didn&apos;t change much; the CRM engine and Treehouse internal admin absorbed most engineering attention. Several features that had been part of the product at one point fell into disuse:
+
+- **MetaMask wallet sign-in** — briefly part of a crypto pivot in 2021–2022. Dormant by 2022.
+- **Gnosis Safe multi-sig payouts** — replaced by Stripe Connect in 2022.
+- **Calendly + Zoom integrations** for 1:1 expert calls — dormant by 2023.
+- **Lusha enrichment** — replaced by Hunter.io and the Smash scraping fleet by 2023.
+- **Rev.com transcription** — replaced by in-house Whisper in 2023.
+- **The engagement marketplace** — self-service expert browsing of open briefs. No new rows after 2023.
+
+The codebase preserved all of them. The catalog is on [/sunset](/currnt-unpacked/sunset).
+
+This is also the era in which the [AI co-facilitator](/currnt-unpacked/features/ai-cofacilitator) was built and reached steady state.
+
+## December 2024 — Freeze
+
+The last commit lands on `master` in mid-December 2024 with the commit message "Update open_ai.js." There is no announcement in the repo, no `FROZEN.md`, no farewell merge. From a Git-history perspective the codebase simply stops.
+
+In the months following, the platform&apos;s production hosts remain running — serving cached traffic, draining queues — but no new commits land, no new features ship, no new prospects are imported. The CRM continues to run its rotation through email sends scheduled before the freeze. The AI co-facilitator continues its 5-minute cadence. Crontabs continue to fire.
+
+This is the state in which the system was inspected for this archive: live but unattended, frozen at one specific commit.
+
+## Brand domains over time
+
+| Domain | Era | Status today |
+|---|---|---|
+| `expertboards.com` | 2015–2016 | Redirects to canonical |
+| `sflnow.com` | 2015–2016 | Redirects to canonical |
+| `convetit.com` | 2016–2021 | Redirects to canonical |
+| `convet.it` | 2016–2021 | Redirects to canonical |
+| Current | 2021–present | Live, serving |
+
+<Callout type="note" title="What's not in this timeline">
+  Customer-side history — which clients, which boards, which specific people
+  — is not covered here. This site is the architecture and operations
+  archive, not the business history.
+</Callout>
+
+</BaseLayout>
