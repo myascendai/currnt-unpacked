@@ -1,0 +1,69 @@
+---
+type Variant = "note" | "warning" | "dormant" | "tip";
+
+interface Props {
+  type?: Variant;
+  title?: string;
+}
+
+const { type = "note", title } = Astro.props;
+const labels: Record<Variant, string> = {
+  note: "Note",
+  warning: "Warning",
+  dormant: "Dormant",
+  tip: "Tip",
+};
+---
+
+<aside class={`callout callout--${type}`} role="note">
+  <div class="callout__head">
+    <span class="callout__label">{title ?? labels[type]}</span>
+  </div>
+  <div class="callout__body">
+    <slot />
+  </div>
+</aside>
+
+<style>
+  .callout {
+    margin-block: 1.5rem;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--bg-soft);
+    padding: 0.8rem 1rem 0.9rem;
+    border-radius: 4px;
+  }
+  .callout--warning {
+    border-left-color: var(--color-rust);
+  }
+  .callout--dormant {
+    border-left-color: var(--fg-muted);
+    background: color-mix(in oklab, var(--bg) 96%, var(--fg-muted) 4%);
+  }
+  .callout--tip {
+    border-left-color: var(--color-sage);
+  }
+  .callout__head {
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg-muted);
+    margin-bottom: 0.35rem;
+  }
+  .callout--warning .callout__head {
+    color: var(--color-rust);
+  }
+  .callout--dormant .callout__head {
+    color: var(--fg-muted);
+  }
+  .callout--tip .callout__head {
+    color: var(--color-sage);
+  }
+  .callout__body :global(p:first-child) {
+    margin-top: 0;
+  }
+  .callout__body :global(p:last-child) {
+    margin-bottom: 0;
+  }
+</style>

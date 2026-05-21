@@ -1,0 +1,205 @@
+{
+  "project": "currnt-unpacked",
+  "branchName": "ralph/mvp",
+  "description": "Static GitHub Pages showcase site documenting the Currnt platform (frozen Dec 2024). Astro + Svelte 5 + Tailwind v4 + MDX + Pagefind. Reference-density (ccunpacked.dev) for architecture/domain pages, narrative warmth (maximeheckel.com) for landing/timeline/security. Public portfolio piece and living archive.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Pull Currnt brand assets from production",
+      "description": "Deferred: requires interactive `gcloud auth login`. SCP `/platformnew/assets/{css,img,fonts}/` from http02 to `/tmp/currnt-src/assets/` for reference (logo, color tokens). MVP proceeds with palette A 'field notes' without these — they slot in any time.",
+      "acceptanceCriteria": [
+        "/tmp/currnt-src/assets/ exists and contains css/, img/ at minimum",
+        "Logo file identified and copied into repo (src/assets/brand/)"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "BLOCKED on gcloud reauth. Surface to Q at end."
+    },
+    {
+      "id": "US-002",
+      "title": "Create public GitHub repo myascendai/currnt-unpacked",
+      "description": "Use `gh repo create myascendai/currnt-unpacked --public` (run via `env -u GH_TOKEN -u GITHUB_TOKEN gh ...` because env tokens override the keyring). No description placeholder; we'll set it from README later.",
+      "acceptanceCriteria": [
+        "Repo exists at github.com/myascendai/currnt-unpacked",
+        "Repo is public",
+        "Repo is empty (no auto-init)"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Scaffold Astro project with full toolchain",
+      "description": "In /Users/admin/Projects/currnt-unpacked: `bun create astro@latest .` (minimal/empty template, TypeScript strict, no git init — we'll git init ourselves). Then add integrations: @astrojs/mdx, @astrojs/svelte (Svelte 5), Tailwind v4 (via @tailwindcss/vite), astro-icon. Also add pagefind as a devDependency. Configure astro.config.mjs with site + base for GH Pages. Add LICENSE (PolyForm Noncommercial 1.0.0) and LICENSE-content (CC-BY-NC-4.0). Add README with project description and license split.",
+      "acceptanceCriteria": [
+        "package.json has astro, @astrojs/mdx, @astrojs/svelte, svelte ^5, tailwindcss ^4, @tailwindcss/vite, pagefind, astro-icon",
+        "astro.config.mjs configured with integrations and GH Pages site/base",
+        "LICENSE (PolyForm-NC-1.0.0) and LICENSE-content (CC-BY-NC-4.0) present",
+        "README.md present with license note",
+        "`bun run build` succeeds",
+        "Typecheck passes (`bun run astro check` or tsc)"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Theme system + base layout + nav/footer/theme toggle",
+      "description": "Implement palette A 'field notes': ivory `#FAF8F3` light / navy `#0F1419` dark, ochre `#C08F3C` accent. Fonts: Newsreader (display), Inter (UI), JetBrains Mono (code). Implement via Tailwind v4 @theme directive in a single CSS file. BaseLayout.astro with <head>, nav (logo text + nav links + theme toggle + search trigger placeholder), main slot with prose container, footer with license note. ThemeToggle.svelte island handles dark/light with localStorage + system preference, no-flash inline script in BaseLayout.",
+      "acceptanceCriteria": [
+        "src/styles/global.css uses @theme with palette A tokens",
+        "Fonts loaded (self-hosted or Google Fonts) and applied",
+        "src/layouts/BaseLayout.astro renders nav + main slot + footer",
+        "src/components/ThemeToggle.svelte (client:load) toggles dark class on html",
+        "Inline no-flash script prevents theme flash on load",
+        "Light and dark both look intentional",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "MDX components: RouteTable, StatStrip, Callout, DormantTable",
+      "description": "Create reusable Astro components used inline in MDX. RouteTable renders a typed list of {method, path, handler, notes} as a styled table. StatStrip renders 6 stat tiles for the landing hero. Callout takes a `type` prop (note|warning|dormant). DormantTable renders {feature, area, lastUsed, status} rows. Register all in astro.config.mjs MDX `components` so they're globally available.",
+      "acceptanceCriteria": [
+        "src/components/mdx/{RouteTable,StatStrip,Callout,DormantTable}.astro exist",
+        "Components have TypeScript prop types via Astro.props interface",
+        "MDX globally registers them via mdx integration config or rehype plugin",
+        "Renders correctly inside an MDX file",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Landing page /",
+      "description": "src/pages/index.astro: hero with one-paragraph 'what was Currnt', StatStrip with the 6 headline stats from handoff (15M prospects, 314 tables, 140 GB, 4,591-line worker, 62 cron jobs, 177 email templates, frozen Dec 2024), 'tour the system' CTA section linking to /architecture/ and /domains/, four-tile surface index linking to subpages.",
+      "acceptanceCriteria": [
+        "Page renders without errors",
+        "Hero text + StatStrip + surface tiles all visible",
+        "Stats match handoff numbers exactly",
+        "Links resolve (no 404s in nav)",
+        "Looks intentional in both light and dark",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Architecture page /architecture/",
+      "description": "src/pages/architecture/index.astro (MDX): SailsJS monolith + MySQL 5.5 + ES 2.4 + Redis + dispenserd, with a Mermaid system-diagram hero. Sections: app layer, data layer, queue/workers (link to /architecture/dispenserd as future page), observability stack note (otelopscol + fluent-bit on http02). Pull content from recon doc.",
+      "acceptanceCriteria": [
+        "Page renders without errors",
+        "Mermaid diagram renders server-side as SVG (no client JS)",
+        "All major architectural components mentioned (app, db, ES, redis, dispenserd, workers, observability)",
+        "Numbers and version info match recon doc",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Treehouse domain page /domains/b",
+      "description": "Define `domains` content collection with schema (letter, title, summary, routePrefixes, headlineFlow, dormantFeatures). Author src/content/domains/b-treehouse.mdx with the Treehouse internal admin content: 33 controllers, 8 pillars, RouteTable of the main /admin/* prefixes (use representative subset from PRD §B), one Mermaid sequence diagram for the headline flow (e.g. SDR contact → board invite). This page defines the pattern for the other 6 domain pages.",
+      "acceptanceCriteria": [
+        "src/content.config.ts (or content/config.ts) defines `domains` collection with zod schema",
+        "src/content/domains/b-treehouse.mdx exists with valid frontmatter",
+        "Dynamic route src/pages/domains/[slug].astro renders the page",
+        "Page renders without errors",
+        "RouteTable shows /admin/* representative routes",
+        "Mermaid sequence diagram renders",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Sunset page /sunset/",
+      "description": "src/pages/sunset.astro (MDX): table of dormant Currnt features. Pull from handoff: engagement marketplace (no rows since 2023), MetaMask auth, Gnosis Safe payouts, Calendly, Lusha, Zoom, NDA flow, Rev.com transcription. Use DormantTable component. Short prose intro framing why these existed and when they fell out of use.",
+      "acceptanceCriteria": [
+        "Page renders without errors",
+        "DormantTable shows all 8 dormant features listed above",
+        "Each row has feature name, area, lastUsed (approx), status",
+        "Intro prose explains framing",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Colophon page /colophon",
+      "description": "src/pages/colophon.astro (MDX): meta page describing how the site was built. Stack list (Astro + Svelte 5 + Tailwind v4 + MDX + Pagefind, hosted on GH Pages), color/font choices, diagram tooling (Mermaid + Excalidraw), and a one-line acknowledgment that this is a portfolio piece + archive, not affiliated with operating Currnt.",
+      "acceptanceCriteria": [
+        "Page renders without errors",
+        "Stack list complete",
+        "Portfolio framing line present",
+        "License attribution links to /LICENSE and /LICENSE-content",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Pagefind client-side search",
+      "description": "Run `pagefind --site dist` as part of build (postbuild script). Build a SearchModal.svelte island with a Cmd+K trigger and result list, mounted in BaseLayout. Use Pagefind's UI primitives or its JS API directly. Ensure search index ships to /pagefind/ in dist.",
+      "acceptanceCriteria": [
+        "package.json `postbuild` script runs pagefind",
+        "After build, dist/pagefind/ exists with index files",
+        "SearchModal.svelte opens on Cmd+K / Ctrl+K",
+        "Searching returns results from indexed pages",
+        "Click result navigates to page",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "GitHub Actions deploy to GH Pages + 404 page",
+      "description": ".github/workflows/deploy.yml: on push to main, run on ubuntu-latest with bun setup, `bun install --frozen-lockfile`, `bun run build` (which includes pagefind via postbuild), upload dist as artifact, deploy to Pages via actions/deploy-pages@v4. Configure repo Pages source as Actions. Add src/pages/404.astro for GH Pages 404 handling.",
+      "acceptanceCriteria": [
+        ".github/workflows/deploy.yml present and well-formed",
+        "Workflow has Pages permissions (pages: write, id-token: write)",
+        "src/pages/404.astro renders a 404 page using BaseLayout",
+        "Push to main triggers workflow; workflow succeeds",
+        "Site live at myascendai.github.io/currnt-unpacked",
+        "All MVP pages reachable from production URL",
+        "Search works on production"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Wire as submodule under ascend-groups/apps/currnt-unpacked",
+      "description": "From /Users/admin/Projects/ascend-groups, run `git submodule add https://github.com/myascendai/currnt-unpacked.git apps/currnt-unpacked`. Commit the submodule pointer + .gitmodules to ascend-groups (do NOT push that commit — that's outside scope). Verify `git submodule status` shows the link.",
+      "acceptanceCriteria": [
+        "apps/currnt-unpacked exists as a submodule in ascend-groups",
+        ".gitmodules updated",
+        "`git submodule status` shows valid SHA",
+        "ascend-groups working tree shows submodule cleanly (no nested .git issues)"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

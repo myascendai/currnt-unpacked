@@ -1,0 +1,84 @@
+---
+title: "Colophon"
+description: "How this site was built: the stack, the design choices, the framing, the license."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# Colophon
+
+This site is a static archive — no database, no auth, no server. Just markdown and HTML, prebuilt and shipped to a CDN. The whole thing exists to document one specific thing carefully, then get out of its own way.
+
+## Stack
+
+- [Astro 5](https://astro.build/) for the static site itself. Pages are a mix of `.astro` (when I need full layout control) and `.mdx` (when prose dominates).
+- [Svelte 5](https://svelte.dev/) for the handful of interactive islands — the theme toggle and the search modal. Runes throughout.
+- [Tailwind v4](https://tailwindcss.com/) using its CSS-first config (`@theme` in a single `global.css`). All color tokens, fonts, and sizes live in one place.
+- [MDX](https://mdxjs.com/) via `@astrojs/mdx` for inline Astro components inside prose.
+- [Shiki](https://shiki.style/) for code highlighting, with light/dark themes set at build time — no client JS, no flash.
+- [Pagefind](https://pagefind.app/) for client-side search. The index is generated at build time and shipped as static files alongside the site.
+- [`astro-icon`](https://www.astroicon.dev/) + [Lucide](https://lucide.dev/) for iconography.
+- [`rehype-mermaid`](https://github.com/remcohaszing/rehype-mermaid) sits in the pipeline for sequence/flow diagrams — used selectively (most diagrams here are hand-laid ASCII because they read better at small sizes).
+- Deployed via **GitHub Actions** to **GitHub Pages**. The whole workflow is one file at `.github/workflows/deploy.yml`.
+
+Bun for installs and builds. No CI tests because the only thing to verify is "does it build" and that&apos;s the deploy step.
+
+## Design choices
+
+The visual language is intentionally a hybrid of two reference sites:
+
+- [maximeheckel.com](https://maximeheckel.com) — for narrative warmth, typographic intent, and a personal voice.
+- [ccunpacked.dev](https://ccunpacked.dev) — for reference density, dense tables, and "everything in one place" navigation.
+
+Palette is called **field notes**: ivory `#FAF8F3` paper, navy `#0F1419` dark, a single ochre accent `#C08F3C` used sparingly. Display type is **Newsreader**, body is **Inter**, code is **JetBrains Mono**. All three are open-source and served from Google Fonts. The pilcrow (¶) in the brand mark is a small joke — appropriate for what is, ultimately, a long-form footnote.
+
+## What I didn&apos;t use
+
+- No analytics. Nothing tracks you.
+- No comment system, no engagement widgets, no signup form.
+- No CMS — every page is a file in the repo.
+- No server, no API routes, no edge functions.
+- No JavaScript on most pages. The pages that do ship JS (those with the theme toggle or search modal) ship ~25 KB total.
+
+<Callout type="note" title="Why not Next.js?">
+  Next.js is the more obvious choice for "Maxime-Heckel-style blog" because
+  that&apos;s literally what Maxime built his site with. But the content shape
+  here is reference-heavy and sparse-interactivity — Astro&apos;s content
+  collections, partial hydration, and zero-JS default fit better. I wanted to
+  use Svelte 5 for the few interactive bits, and Astro is happy to host Svelte
+  islands alongside MDX. Best of both.
+</Callout>
+
+## Framing
+
+This is a portfolio piece and a personal archive. It is **not** an official
+post-mortem from the company that owned Currnt, and it is **not** affiliated
+with any operating Currnt entity. Everything here is reconstructed from
+direct technical recon of a frozen production system the author owned access
+to. Sensitive material — API keys, exact credentials, internal-only identifiers — is referenced categorically, never quoted.
+
+If you&apos;re reading this because you&apos;re thinking about working with the
+author: the source is at [github.com/myascendai/currnt-unpacked](https://github.com/myascendai/currnt-unpacked). The full unredacted PRD lives in a separate repo and isn&apos;t public.
+
+## License
+
+Dual-licensed for clarity:
+
+- Code — anything that isn&apos;t prose, diagram source, or content — is under
+  [PolyForm Noncommercial 1.0.0](https://github.com/myascendai/currnt-unpacked/blob/main/LICENSE).
+- Content — the prose, diagrams, written analysis — is under
+  [CC BY-NC 4.0](https://github.com/myascendai/currnt-unpacked/blob/main/LICENSE-content).
+
+Attribution is required under both. Commercial use is not permitted under either. Contact the author for other arrangements.
+
+## Source
+
+[`github.com/myascendai/currnt-unpacked`](https://github.com/myascendai/currnt-unpacked).
+Issues, corrections, and questions welcome there.
+
+</BaseLayout>

@@ -1,0 +1,28 @@
+---
+interface Props {
+  columns?: 2 | 3 | 4;
+}
+
+const { columns = 2 } = Astro.props;
+---
+
+<div class="tile-grid" data-columns={columns}>
+  <slot />
+</div>
+
+<style>
+  .tile-grid {
+    display: grid;
+    gap: 0.9rem;
+    margin-block: 2rem;
+  }
+  .tile-grid[data-columns="2"] {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .tile-grid[data-columns="3"] {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .tile-grid[data-columns="4"] {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
+</style>

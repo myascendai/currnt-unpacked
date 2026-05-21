@@ -1,0 +1,62 @@
+---
+export interface Stat {
+  value: string;
+  label: string;
+  note?: string;
+}
+
+interface Props {
+  stats: Stat[];
+}
+
+const { stats } = Astro.props;
+---
+
+<section class="stat-strip" aria-label="Headline statistics">
+  {
+    stats.map((stat) => (
+      <div class="stat-strip__item">
+        <span class="stat-strip__value">{stat.value}</span>
+        <span class="stat-strip__label">{stat.label}</span>
+        {stat.note && <span class="stat-strip__note">{stat.note}</span>}
+      </div>
+    ))
+  }
+</section>
+
+<style>
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-block: 2rem;
+  }
+  .stat-strip__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 1rem 1.1rem;
+    background: var(--bg);
+  }
+  .stat-strip__value {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    line-height: 1.05;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+  }
+  .stat-strip__label {
+    font-size: 0.83rem;
+    color: var(--fg-soft);
+    line-height: 1.3;
+  }
+  .stat-strip__note {
+    font-size: 0.74rem;
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+  }
+</style>

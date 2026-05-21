@@ -1,0 +1,45 @@
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<BaseLayout
+  title="Not found"
+  description="That page doesn't exist on currnt-unpacked."
+>
+  <div class="notfound">
+    <p class="notfound__kicker">404</p>
+    <h1 class="notfound__title">Page not found</h1>
+    <p class="notfound__body">
+      Nothing at this URL. Either it was never here, or it got renamed during a
+      build. Try the <a href={`${base}/`}>landing page</a>, the
+      <a href={`${base}/architecture`}>architecture</a> overview, or
+      <a href={`${base}/domains`}>domain index</a>.
+    </p>
+  </div>
+
+  <style>
+    .notfound {
+      padding-top: 3rem;
+    }
+    .notfound__kicker {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      margin: 0 0 0.5rem 0;
+    }
+    .notfound__title {
+      font-family: var(--font-display);
+      font-size: 2.6rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin: 0 0 1rem 0;
+    }
+    .notfound__body {
+      color: var(--fg-soft);
+      max-width: 60ch;
+    }
+  </style>
+</BaseLayout>

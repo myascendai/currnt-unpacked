@@ -1,0 +1,183 @@
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import StatStrip from "~/components/mdx/StatStrip.astro";
+import SurfaceTile from "~/components/mdx/SurfaceTile.astro";
+import TileGrid from "~/components/mdx/TileGrid.astro";
+
+const stats = [
+  { value: "15M", label: "prospects in the CRM" },
+  { value: "314", label: "MySQL tables", note: "MySQL 5.5" },
+  { value: "140 GB", label: "production data" },
+  { value: "62", label: "scheduled cron jobs" },
+  { value: "177", label: "email templates" },
+  { value: "Dec 2024", label: "codebase frozen", note: "commit 192a21e" },
+];
+---
+
+<BaseLayout
+  title="currnt-unpacked"
+  description="A static archive of the Currnt platform — architecture, history, and post-mortem of a 9-year-old SailsJS monolith frozen in Dec 2024."
+  wide
+>
+  <section class="hero">
+    <p class="hero__kicker">Field notes from a frozen platform</p>
+    <h1 class="hero__title">
+      <span class="hero__title-mark">¶</span> currnt-unpacked
+    </h1>
+    <p class="hero__lede">
+      <strong>Currnt</strong> — originally <em>Expertboards</em>, then{" "}
+      <em>Convetit</em> — was a B2B expert-network and market-research platform
+      that ran from ~2015 until its codebase was frozen on
+      <code>commit 192a21e</code> in December 2024. A SailsJS monolith on a
+      single VM, a 15M-row outreach engine, a 33-controller internal admin, and
+      a homegrown HTTP queue keeping the whole thing moving. This site is the
+      archaeological record: what was built, how it fit together, what was
+      sunset, and what was still planned the day the lights went out.
+    </p>
+    <StatStrip stats={stats} />
+  </section>
+
+  <section class="tour">
+    <h2 class="tour__title">Tour the system</h2>
+    <p class="tour__lede">
+      Start with the bones, or jump straight to a surface that interests you.
+    </p>
+    <TileGrid columns={2}>
+      <SurfaceTile
+        href="/architecture"
+        title="Architecture"
+        kicker="Bones"
+      >
+        SailsJS monolith on http02, MySQL 5.5 + Elasticsearch 2.4 on db01,
+        Redis for sessions, and a custom HTTP queue called{" "}
+        <code>dispenserd</code> orchestrating 13 Supervisord workers.
+      </SurfaceTile>
+
+      <SurfaceTile
+        href="/domains"
+        title="Product domains"
+        kicker="Surface area"
+      >
+        Six product domains (A–F) plus Corporate, mapped to ~80 user flows and a
+        2,278-line routes file. Each gets its own page with route table and
+        headline flow diagram.
+      </SurfaceTile>
+
+      <SurfaceTile
+        href="/sunset"
+        title="Sunset features"
+        kicker="What was let go"
+      >
+        The engagement marketplace, MetaMask auth, Gnosis Safe payouts,
+        Calendly, Lusha, Zoom, NDA flow, Rev.com transcription. Eight features
+        that had budget once and then didn&apos;t.
+      </SurfaceTile>
+
+      <SurfaceTile
+        href="/colophon"
+        title="How this site is built"
+        kicker="Meta"
+      >
+        Astro + Svelte 5 + Tailwind v4 + MDX, deployed to GitHub Pages. The
+        stack, the design choices, and the framing of this project as both
+        portfolio and archive.
+      </SurfaceTile>
+    </TileGrid>
+  </section>
+
+  <section class="surfaces">
+    <h2 class="tour__title">Four ways into the codebase</h2>
+    <p class="tour__lede">
+      Currnt rendered itself through four distinct surfaces, each with its own
+      conventions and audience.
+    </p>
+    <TileGrid columns={4}>
+      <SurfaceTile href="/architecture" title="Public web" kicker="A">
+        Marketing site, blog, board catalog, signup, login. Sails views served
+        from the same monolith.
+      </SurfaceTile>
+      <SurfaceTile href="/architecture" title="Corporate portals" kicker="Corp">
+        Client-branded sub-experiences for enterprise customers running their
+        own advisory boards.
+      </SurfaceTile>
+      <SurfaceTile href="/domains/b-treehouse" title="Treehouse" kicker="B–F">
+        The internal back-office. 33 controllers, 8 pillars, the actual seat of
+        operations.
+      </SurfaceTile>
+      <SurfaceTile href="/architecture" title="Mobile + Service APIs" kicker="API">
+        REST endpoints used by the iOS app and a thin layer of service-to-service
+        integrations.
+      </SurfaceTile>
+    </TileGrid>
+  </section>
+
+  <section class="cta">
+    <p class="cta__line">
+      Codebase frozen. System dormant. Story preserved.
+    </p>
+  </section>
+
+  <style>
+    .hero {
+      margin-top: 1rem;
+      margin-bottom: 3.5rem;
+    }
+    .hero__kicker {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--fg-muted);
+      margin-bottom: 1rem;
+    }
+    .hero__title {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 5vw, 3.6rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 0 0 1.5rem 0;
+      font-weight: 500;
+    }
+    .hero__title-mark {
+      color: var(--accent);
+    }
+    .hero__lede {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: var(--fg-soft);
+      max-width: 60ch;
+      margin: 0 0 1rem 0;
+    }
+    .hero__lede strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+
+    .tour,
+    .surfaces {
+      margin-block: 3.5rem;
+    }
+    .tour__title {
+      font-size: 1.5rem;
+      margin: 0 0 0.4rem 0;
+    }
+    .tour__lede {
+      color: var(--fg-soft);
+      margin: 0 0 1.2rem 0;
+    }
+
+    .cta {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .cta__line {
+      font-family: var(--font-display);
+      font-style: italic;
+      color: var(--fg-muted);
+      font-size: 1.05rem;
+      margin: 0;
+    }
+  </style>
+</BaseLayout>

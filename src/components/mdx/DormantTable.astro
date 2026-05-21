@@ -1,0 +1,113 @@
+---
+export interface DormantFeature {
+  feature: string;
+  area: string;
+  lastUsed: string;
+  status: string;
+  notes?: string;
+}
+
+interface Props {
+  features: DormantFeature[];
+}
+
+const { features } = Astro.props;
+
+const statusColor = (status: string): string => {
+  const s = status.toLowerCase();
+  if (s.includes("removed") || s.includes("deleted")) return "var(--color-rust)";
+  if (s.includes("dormant") || s.includes("unused")) return "var(--fg-muted)";
+  if (s.includes("retained")) return "var(--color-sage)";
+  return "var(--accent)";
+};
+---
+
+<figure class="dormant-table">
+  <table>
+    <thead>
+      <tr>
+        <th class="dt-feature">Feature</th>
+        <th class="dt-area">Area</th>
+        <th class="dt-last">Last used</th>
+        <th class="dt-status">Status</th>
+        <th class="dt-notes">Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        features.map((f) => (
+          <tr>
+            <td class="dt-feature">{f.feature}</td>
+            <td class="dt-area">{f.area}</td>
+            <td class="dt-last">
+              <code>{f.lastUsed}</code>
+            </td>
+            <td class="dt-status">
+              <span
+                class="dt-status-badge"
+                style={`--m: ${statusColor(f.status)}`}
+              >
+                {f.status}
+              </span>
+            </td>
+            <td class="dt-notes">{f.notes ?? ""}</td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</figure>
+
+<style>
+  .dormant-table {
+    margin: 2rem 0;
+    overflow-x: auto;
+  }
+  .dormant-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 640px;
+  }
+  .dormant-table th,
+  .dormant-table td {
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .dormant-table th {
+    background: var(--bg-soft);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+  }
+  .dt-feature {
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .dt-last code {
+    font-size: 0.83rem;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--fg-soft);
+  }
+  .dt-status-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--m);
+    border: 1px solid color-mix(in oklab, var(--m) 50%, transparent);
+    border-radius: 3px;
+    padding: 0.05rem 0.4rem;
+    background: color-mix(in oklab, var(--m) 8%, transparent);
+    white-space: nowrap;
+  }
+  .dt-notes {
+    color: var(--fg-soft);
+  }
+</style>

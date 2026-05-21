@@ -1,0 +1,219 @@
+---
+import "~/styles/global.css";
+import ThemeToggle from "~/components/ThemeToggle.svelte";
+import SearchTrigger from "~/components/SearchTrigger.svelte";
+import SearchModal from "~/components/SearchModal.svelte";
+
+interface Props {
+  title: string;
+  description?: string;
+  wide?: boolean;
+}
+
+const { title, description, wide = false } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const pageTitle =
+  title === "currnt-unpacked" ? title : `${title} — currnt-unpacked`;
+
+const nav = [
+  { href: "/architecture", label: "Architecture" },
+  { href: "/domains", label: "Domains" },
+  { href: "/sunset", label: "Sunset" },
+  { href: "/colophon", label: "Colophon" },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{pageTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          var dark = stored ? stored === "dark" : prefersDark;
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a href={`${base}/`} class="brand">
+          <span class="brand__mark" aria-hidden="true">¶</span>
+          <span class="brand__text">currnt-unpacked</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          {
+            nav.map((item) => (
+              <a href={`${base}${item.href}`} class="site-nav__link">
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+        <div class="site-actions">
+          <SearchTrigger client:load />
+          <ThemeToggle client:load />
+        </div>
+      </div>
+    </header>
+
+    <main
+      id="main"
+      class={wide ? "prose-wide" : "prose-page"}
+      data-pagefind-body
+    >
+      <slot />
+    </main>
+
+    <SearchModal client:idle />
+
+
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <p>
+          A static archive of the <strong>Currnt</strong> platform (frozen Dec 2024).
+          Not affiliated with the operating company.
+        </p>
+        <p class="site-footer__meta">
+          Code: <a href={`${base}/LICENSE`}>PolyForm Noncommercial 1.0.0</a> ·
+          Content: <a href={`${base}/LICENSE-content`}>CC BY-NC 4.0</a> ·{" "}
+          <a href="https://github.com/myascendai/currnt-unpacked">Source</a>
+        </p>
+      </div>
+    </footer>
+
+    <style>
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+      }
+      .skip-link:focus {
+        left: 1rem;
+        top: 1rem;
+        background: var(--bg);
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border);
+        z-index: 100;
+      }
+
+      .site-header {
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in oklab, var(--bg) 92%, transparent);
+        backdrop-filter: blur(8px);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      .site-header__inner {
+        max-width: 1100px;
+        margin-inline: auto;
+        padding: 0.9rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.55rem;
+        text-decoration: none;
+        color: var(--fg);
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+      .brand:hover {
+        text-decoration: none;
+      }
+      .brand__mark {
+        color: var(--accent);
+        font-size: 1.4em;
+        line-height: 0.9;
+      }
+
+      .site-nav {
+        margin-right: auto;
+        display: flex;
+        gap: 1.3rem;
+        font-size: 0.93rem;
+      }
+      .site-nav__link {
+        color: var(--fg-soft);
+        text-decoration: none;
+      }
+      .site-nav__link:hover {
+        color: var(--fg);
+        text-decoration: none;
+      }
+
+      .site-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .site-footer {
+        border-top: 1px solid var(--border);
+        margin-top: 4rem;
+        font-size: 0.88rem;
+        color: var(--fg-muted);
+      }
+      .site-footer__inner {
+        max-width: 1100px;
+        margin-inline: auto;
+        padding: 2rem 1.5rem;
+      }
+      .site-footer__meta {
+        margin-top: 0.4em;
+      }
+      .site-footer p {
+        margin: 0;
+      }
+
+      @media (max-width: 640px) {
+        .site-header__inner {
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .site-nav {
+          order: 3;
+          width: 100%;
+          margin-right: 0;
+          gap: 1rem;
+          font-size: 0.88rem;
+        }
+        .site-actions {
+          margin-left: auto;
+        }
+      }
+    </style>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+---
+letter: "B"
+title: "Treehouse — the internal back-office"
+summary: "The 33-controller internal admin where every sales, ops, content, and account-management workflow at Currnt actually happened. Eight functional pillars, hundreds of pages, no public users."
+surface: "treehouse"
+routePrefixes:
+  - "/admin/*"
+  - "/treehouse/*"
+controllerCount: 33
+headlineFlow: "SDR contact → board invite"
+order: 2
+---
+
+import RouteTable from "~/components/mdx/RouteTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+# Treehouse — the internal back-office
+
+If the public marketing site is what the world saw of Currnt, **Treehouse is what Currnt actually was**. The customer-facing surface was a thin storefront; Treehouse is where the company lived. 33 controllers, eight functional pillars, hundreds of pages — none of them ever served a public user.
+
+## The eight pillars
+
+Treehouse organizes itself into eight functional groups. Each group is a cluster of controllers + Twig views + a set of background jobs.
+
+1. **Prospects** — the 15-million-row CRM, including dedup, segmentation, list management, account rotation for outreach, and Hunter.io enrichment.
+2. **Outreach** — email campaign authoring, multi-account SMTP rotation, A/B tracking, and the "Smash" LinkedIn-scraping bot fleet.
+3. **Boards** — the engagement lifecycle (advisory boards / sprints): briefing, expert recruitment, conversation, transcript, deliverable.
+4. **Content** — production workflow for blog posts, board summaries, and marketing assets. Includes a homegrown Markdown editor and the AI co-facilitator hooks.
+5. **Members** — user/account management, segmentation, lifecycle status, suspension, merge/dedup of duplicate accounts.
+6. **Operations** — billing, invoicing, payouts (formerly via Gnosis Safe — now dormant), legal/NDA tracking, support ticket views.
+7. **Analytics** — internal dashboards, cohort metrics, board ROI rollups, the daily-digest cron.
+8. **System** — feature-flag administration, cron job management, queue inspection, and read-only views into the dispenserd lanes.
+
+## Representative routes
+
+The full Treehouse route surface is too large to list here — `routes.js` is 2,278 lines and a meaningful subset goes via dynamic controllers. The below is a curated cross-section showing the shape:
+
+<RouteTable
+  caption="A representative cross-section of /admin/* and /treehouse/* routes. Not exhaustive."
+  routes={[
+    { method: "GET", path: "/admin", handler: "AdminController.dashboard", notes: "Pillar landing; widget grid." },
+    { method: "GET", path: "/admin/prospects", handler: "ProspectController.list", notes: "Searchable, segmented, paginated 25/page." },
+    { method: "GET", path: "/admin/prospects/:id", handler: "ProspectController.detail", notes: "Activity timeline + dedup candidates." },
+    { method: "POST", path: "/admin/prospects/import", handler: "ProspectController.import", notes: "CSV; queues `import_prospects` lane." },
+    { method: "GET", path: "/admin/outreach/campaigns", handler: "CampaignController.list", notes: "All active and historical campaigns." },
+    { method: "POST", path: "/admin/outreach/send", handler: "CampaignController.send", notes: "Queues `send_outreach` jobs, 1 per recipient." },
+    { method: "GET", path: "/admin/boards", handler: "BoardController.list", notes: "Filter by status: draft / active / closed." },
+    { method: "GET", path: "/admin/boards/:id/transcripts", handler: "BoardController.transcripts", notes: "Per-board conversation log." },
+    { method: "POST", path: "/admin/content/posts", handler: "PostController.create", notes: "Triggers AI co-facilitator nudging hook." },
+    { method: "GET", path: "/admin/members", handler: "MemberController.list", notes: "Internal-only view; not the public profile page." },
+    { method: "POST", path: "/admin/members/:id/merge", handler: "MemberController.merge", notes: "Dedup two accounts into one." },
+    { method: "GET", path: "/admin/ops/invoices", handler: "InvoiceController.list", notes: "Filter by client, status, fiscal quarter." },
+    { method: "GET", path: "/admin/analytics", handler: "AnalyticsController.dashboard", notes: "Cohort metrics, refreshed nightly." },
+    { method: "GET", path: "/admin/system/cron", handler: "SystemController.cron", notes: "62 jobs; last run + next run." },
+    { method: "GET", path: "/admin/system/queue", handler: "SystemController.queue", notes: "Live view into dispenserd lanes." },
+  ]}
+/>
+
+## The headline flow: SDR contact → board invite
+
+The single most-trafficked Treehouse workflow takes a brand-new prospect from the 15M-row CRM all the way to sitting on an advisory board for a paying client. It crosses six controllers and two queue lanes.
+
+```
+Step 1: SDR opens /admin/prospects, filters by industry + seniority + last-contact > 60d.
+Step 2: Bulk-selects ~50 rows, "Add to campaign" → CampaignController.addProspects.
+Step 3: ProspectController writes campaign_membership rows.
+Step 4: CampaignController.send → POSTs N jobs to dispenserd lane `send_outreach`.
+Step 5: dispenserd worker picks up each job, renders one of 177 email templates,
+        sends via the next SMTP account in rotation (Mandrill fallback).
+Step 6: Recipient clicks tracked link → /track/:campaign/:prospect → records open.
+Step 7: Replies hit a parsing webhook → InboundController.parse → matches to prospect.
+Step 8: SDR sees reply in /admin/prospects/:id, marks as "interested".
+Step 9: BoardController.invite generates a one-time invite URL → emails it.
+Step 10: Recipient accepts → user account created, joined to board, expert role assigned.
+```
+
+This is the seat of revenue. Every other workflow in Treehouse is, in some way, in service of making this loop tighter.
+
+<Callout type="note" title="The 'Smash' bots">
+  Prospect enrichment is partly automated via a fleet of LinkedIn-scraping
+  workers internally called &quot;Smash.&quot; They rotate through proxy IPs
+  and harvested LinkedIn accounts to fill in employment, seniority, and
+  decision-making signals on prospects. Lived in <code>worker02</code>; not
+  user-facing.
+</Callout>
+
+## Dormant Treehouse features
+
+Several Treehouse pillars contain features that no longer have live data flowing through them. They&apos;re catalogued on the [sunset page](/sunset). The biggest is the **engagement marketplace** — a pillar inside Boards where experts could browse open sprints and self-apply. The schema still exists; no rows since 2023.
+
+## Phase-2 pages this links to
+
+- `/domains/a` — the public web product surface _(phase 2)_
+- `/domains/c` through `/domains/f` — remaining product domains _(phase 2)_
+- `/features/crm-engine` — how the 15M prospects got into the database _(phase 3)_

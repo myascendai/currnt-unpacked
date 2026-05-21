@@ -1,0 +1,106 @@
+---
+title: "Sunset"
+description: "Features that had budget once and then didn't. A catalogue of dormant subsystems in the Currnt codebase as of the December 2024 freeze."
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import DormantTable from "~/components/mdx/DormantTable.astro";
+import Callout from "~/components/mdx/Callout.astro";
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+>
+
+# Sunset
+
+Every long-lived product accumulates rooms it stopped going into. Currnt&apos;s nine years left a handful of substantial features that still live in the codebase — schemas, controllers, views, sometimes whole pillars — but whose data flow stopped at some identifiable point. This page catalogues them.
+
+What follows is not a list of "things to delete." It&apos;s a record of bets the platform made that turned out to be different than expected — sometimes the timing was wrong, sometimes the market moved, sometimes the underlying integration disappeared. Each entry is preserved because it&apos;s part of the shape of the system, not despite it.
+
+<DormantTable
+  features={[
+    {
+      feature: "Engagement marketplace",
+      area: "Boards (Domain C)",
+      lastUsed: "~Q2 2023",
+      status: "Dormant",
+      notes: "Self-service expert browse + apply. Schema + controllers intact; zero rows since 2023.",
+    },
+    {
+      feature: "MetaMask wallet auth",
+      area: "Members (Domain E)",
+      lastUsed: "~2022",
+      status: "Dormant",
+      notes: "Web3 sign-in option from a brief crypto pivot. Wired into AuthController.",
+    },
+    {
+      feature: "Gnosis Safe payouts",
+      area: "Operations (Domain F)",
+      lastUsed: "~2022",
+      status: "Dormant",
+      notes: "Multi-sig payouts to experts. Replaced by Stripe Connect; Safe path never fully removed.",
+    },
+    {
+      feature: "Calendly integration",
+      area: "Boards (Domain C)",
+      lastUsed: "~2022",
+      status: "Dormant",
+      notes: "1:1 expert calls scheduled via Calendly webhooks. Integration credentials still in config.",
+    },
+    {
+      feature: "Lusha enrichment",
+      area: "Prospects (Treehouse)",
+      lastUsed: "~2023",
+      status: "Dormant",
+      notes: "Contact-data enrichment via Lusha API. Superseded by Hunter.io + 'Smash' LinkedIn bots.",
+    },
+    {
+      feature: "Zoom integration",
+      area: "Boards (Domain C)",
+      lastUsed: "~2023",
+      status: "Dormant",
+      notes: "Auto-created Zoom meetings for board sessions. Replaced by self-managed links.",
+    },
+    {
+      feature: "Click-through NDA flow",
+      area: "Operations (Domain F)",
+      lastUsed: "~2023",
+      status: "Dormant",
+      notes: "Per-board NDA acceptance with versioned templates. Logic preserved; UI no longer reachable.",
+    },
+    {
+      feature: "Rev.com transcription",
+      area: "Content (Domain D)",
+      lastUsed: "~2023",
+      status: "Dormant",
+      notes: "Outsourced board-call transcription. Replaced by in-house Whisper pipeline.",
+    },
+  ]}
+/>
+
+## A few notes on what counts as "dormant"
+
+The status column above means different things in different cases:
+
+- **Schema + UI both intact, zero traffic.** The Calendly and Zoom integrations are like this — you could probably re-enable them in a day if you had API credentials still valid.
+- **Schema intact, UI removed.** The NDA flow falls here — the data model still expects per-board NDA acceptance rows, but no page in the app surfaces the form anymore.
+- **Replaced by something else.** Lusha was straightforwardly superseded by Hunter.io + the LinkedIn scrapers; the Lusha API client lingers as imported-but-not-called code.
+
+<Callout type="dormant" title="What didn't make this list">
+  Things that were planned but never shipped — the long tail of <code>/admin/system/flags</code>
+  entries set to <code>false</code> — aren&apos;t catalogued here. Those live in a
+  larger PRD section on
+  <a href="#" onclick="return false">planned-but-unshipped</a> work that comes in phase 3.
+</Callout>
+
+## Cross-references
+
+Each row links into the relevant domain page once that page exists in phase 2:
+
+- Engagement marketplace, Calendly, Zoom → `/domains/c` _(phase 2)_
+- MetaMask auth → `/domains/e` _(phase 2)_
+- Gnosis Safe, NDA flow → `/domains/f` _(phase 2)_
+- Lusha → `/domains/b-treehouse` (in the Prospects pillar)
+- Rev.com → `/domains/d` _(phase 2)_
+
+</BaseLayout>
