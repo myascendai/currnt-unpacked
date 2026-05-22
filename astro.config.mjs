@@ -27,7 +27,9 @@ export default defineConfig({
         light: "github-light",
         dark: "github-dark-dimmed",
       },
-      wrap: true,
+      // wrap: false preserves ASCII box-drawing alignment in narrow containers.
+      // Long real-code lines overflow horizontally via `pre { overflow-x: auto }`.
+      wrap: false,
     },
     rehypePlugins: [[rehypeMermaid, { strategy: "img-svg", dark: true }]],
   },
