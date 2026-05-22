@@ -22,7 +22,7 @@ const stats = [
   <section class="hero">
     <p class="hero__kicker">Field notes from a frozen platform</p>
     <h1 class="hero__title">
-      <span class="hero__title-mark">¶</span> currnt-unpacked
+      <span class="hero__title-brand">Currnt,</span> unpacked.
     </h1>
     <p class="hero__lede">
       <strong>Currnt</strong> — originally <em>Expertboards</em>, then{" "}
@@ -143,13 +143,17 @@ const stats = [
     }
     .hero__title {
       font-family: var(--font-display);
-      font-size: clamp(2.4rem, 5vw, 3.6rem);
-      line-height: 1.05;
-      letter-spacing: -0.02em;
+      font-size: clamp(2.8rem, 6vw, 4.4rem);
+      line-height: 1;
+      letter-spacing: -0.015em;
       margin: 0 0 1.5rem 0;
-      font-weight: 500;
+      font-weight: 600;
+      color: var(--navy);
     }
-    .hero__title-mark {
+    :global(html.dark) .hero__title {
+      color: var(--fg);
+    }
+    .hero__title-brand {
       color: var(--accent);
     }
     .hero__lede {

@@ -38,7 +38,11 @@ const footerLinks = [
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
     {description && <meta name="description" content={description} />}
-    <link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+    <link rel="icon" type="image/png" sizes="180x180" href={`${base}/brand/favicon-180.png`} />
+    <link rel="icon" type="image/png" sizes="167x167" href={`${base}/brand/favicon-167.png`} />
+    <link rel="icon" type="image/png" sizes="152x152" href={`${base}/brand/favicon-152.png`} />
+    <link rel="icon" type="image/png" sizes="120x120" href={`${base}/brand/favicon-120.png`} />
+    <link rel="apple-touch-icon" sizes="180x180" href={`${base}/brand/favicon-180.png`} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
@@ -47,7 +51,7 @@ const footerLinks = [
       crossorigin
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Khand:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
 
@@ -68,9 +72,22 @@ const footerLinks = [
     <a href="#main" class="skip-link">Skip to content</a>
     <header class="site-header">
       <div class="site-header__inner">
-        <a href={`${base}/`} class="brand">
-          <span class="brand__mark" aria-hidden="true">¶</span>
-          <span class="brand__text">currnt-unpacked</span>
+        <a href={`${base}/`} class="brand" aria-label="currnt-unpacked home">
+          <img
+            class="brand__logo brand__logo--light"
+            src={`${base}/brand/currnt-color-logo.png`}
+            alt="Currnt"
+            width="291"
+            height="55"
+          />
+          <img
+            class="brand__logo brand__logo--dark"
+            src={`${base}/brand/currnt-white-logo.png`}
+            alt="Currnt"
+            width="291"
+            height="55"
+          />
+          <span class="brand__suffix">/ unpacked</span>
         </a>
         <nav class="site-nav" aria-label="Primary">
           {
@@ -98,12 +115,12 @@ const footerLinks = [
 
     <SearchModal client:idle />
 
-
     <footer class="site-footer">
       <div class="site-footer__inner">
         <p>
           A static archive of the <strong>Currnt</strong> platform (frozen Dec 2024).
-          Not affiliated with the operating company.
+          Not affiliated with the operating company. The Currnt logo and brand
+          marks are used to identify the platform being archived.
         </p>
         <p class="site-footer__meta">
           {
@@ -148,7 +165,7 @@ const footerLinks = [
       .site-header__inner {
         max-width: 1100px;
         margin-inline: auto;
-        padding: 0.9rem 1.5rem;
+        padding: 0.85rem 1.5rem;
         display: flex;
         align-items: center;
         gap: 2rem;
@@ -156,22 +173,35 @@ const footerLinks = [
 
       .brand {
         display: inline-flex;
-        align-items: baseline;
+        align-items: center;
         gap: 0.55rem;
         text-decoration: none;
-        color: var(--fg);
-        font-family: var(--font-display);
-        font-size: 1.1rem;
-        font-weight: 500;
-        letter-spacing: -0.01em;
       }
       .brand:hover {
         text-decoration: none;
       }
-      .brand__mark {
-        color: var(--accent);
-        font-size: 1.4em;
-        line-height: 0.9;
+      .brand__logo {
+        height: 30px;
+        width: auto;
+        display: block;
+      }
+      .brand__logo--dark {
+        display: none;
+      }
+      :global(html.dark) .brand__logo--light {
+        display: none;
+      }
+      :global(html.dark) .brand__logo--dark {
+        display: block;
+      }
+      .brand__suffix {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        font-weight: 400;
+        color: var(--fg-muted);
+        letter-spacing: 0.005em;
+        line-height: 1;
+        padding-top: 4px;
       }
 
       .site-nav {
@@ -183,9 +213,10 @@ const footerLinks = [
       .site-nav__link {
         color: var(--fg-soft);
         text-decoration: none;
+        transition: color 120ms ease;
       }
       .site-nav__link:hover {
-        color: var(--fg);
+        color: var(--accent);
         text-decoration: none;
       }
 
@@ -213,7 +244,7 @@ const footerLinks = [
         margin: 0;
       }
 
-      @media (max-width: 640px) {
+      @media (max-width: 720px) {
         .site-header__inner {
           gap: 1rem;
           flex-wrap: wrap;
@@ -222,8 +253,15 @@ const footerLinks = [
           order: 3;
           width: 100%;
           margin-right: 0;
-          gap: 1rem;
-          font-size: 0.88rem;
+          gap: 0.9rem;
+          font-size: 0.85rem;
+          flex-wrap: wrap;
+        }
+        .brand__suffix {
+          display: none;
+        }
+        .brand__logo {
+          height: 26px;
         }
         .site-actions {
           margin-left: auto;

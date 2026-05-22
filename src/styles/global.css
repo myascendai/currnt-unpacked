@@ -1,31 +1,40 @@
 @import "tailwindcss";
 
 @theme {
-  /* Palette A — "field notes" */
-  --color-paper: #faf8f3;
-  --color-paper-soft: #f3efe6;
-  --color-paper-border: #e6dfd0;
-  --color-ink: #1c1f24;
-  --color-ink-soft: #3d434d;
-  --color-ink-muted: #6a6f78;
+  /* Currnt brand tokens — extracted from /platformnew/assets/css/main_scss.css */
+  --color-currnt-raspberry: #dd1c44;
+  --color-currnt-raspberry-soft: #e64a6a;
+  --color-currnt-raspberry-deep: #b51637;
+  --color-currnt-navy: #111250;
+  --color-currnt-navy-soft: #1a1b6a;
+  --color-currnt-navy-deep: #0a0b3a;
+  --color-currnt-ink: #2a2929;
+  --color-currnt-ink-soft: #515151;
+  --color-currnt-grey: #dfdfdf;
+  --color-currnt-grey-soft: #eaeff1;
+  --color-currnt-grey-deep: #9e9e9e;
+  --color-currnt-purple: #862c6d;
+  --color-currnt-gold: #d8a131;
 
-  --color-navy: #0f1419;
-  --color-navy-soft: #161b22;
-  --color-navy-border: #2a313a;
-  --color-bone: #e8e6df;
-  --color-bone-soft: #b8b5ad;
-  --color-bone-muted: #7d7b75;
+  /* Surface tokens — light mode */
+  --color-paper: #ffffff;
+  --color-paper-soft: #f7f7fa;
+  --color-paper-border: #e4e4ea;
 
-  --color-ochre: #c08f3c;
-  --color-ochre-soft: #d4a85f;
-  --color-ochre-deep: #8f6722;
+  /* Surface tokens — dark mode */
+  --color-night: #0a0b3a;
+  --color-night-soft: #15165a;
+  --color-night-border: #2a2c6a;
+  --color-bone: #f1f1f6;
+  --color-bone-soft: #c5c6dc;
+  --color-bone-muted: #8b8da8;
 
-  --color-rust: #a04a2a;
+  --color-rust: #c53643;
   --color-sage: #6b8c61;
 
-  /* Typography */
-  --font-display: "Newsreader", "Iowan Old Style", "Apple Garamond",
-    "Palatino Linotype", "Times New Roman", serif;
+  /* Typography — Khand (display, from Currnt's own stylesheet) + Inter (body) */
+  --font-display: "Khand", "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas,
@@ -37,32 +46,35 @@
   --measure-wide: 78ch;
 }
 
-/* No-flash theme init handled by inline script in BaseLayout. */
 @layer base {
   :root {
     color-scheme: light;
     --bg: var(--color-paper);
     --bg-soft: var(--color-paper-soft);
     --border: var(--color-paper-border);
-    --fg: var(--color-ink);
-    --fg-soft: var(--color-ink-soft);
-    --fg-muted: var(--color-ink-muted);
-    --accent: var(--color-ochre-deep);
-    --accent-soft: var(--color-ochre);
-    --link: var(--color-ochre-deep);
+    --fg: var(--color-currnt-ink);
+    --fg-soft: var(--color-currnt-ink-soft);
+    --fg-muted: var(--color-currnt-grey-deep);
+    --accent: var(--color-currnt-raspberry);
+    --accent-soft: var(--color-currnt-raspberry-soft);
+    --accent-deep: var(--color-currnt-raspberry-deep);
+    --navy: var(--color-currnt-navy);
+    --link: var(--color-currnt-raspberry-deep);
   }
 
   html.dark {
     color-scheme: dark;
-    --bg: var(--color-navy);
-    --bg-soft: var(--color-navy-soft);
-    --border: var(--color-navy-border);
+    --bg: var(--color-night);
+    --bg-soft: var(--color-night-soft);
+    --border: var(--color-night-border);
     --fg: var(--color-bone);
     --fg-soft: var(--color-bone-soft);
     --fg-muted: var(--color-bone-muted);
-    --accent: var(--color-ochre-soft);
-    --accent-soft: var(--color-ochre);
-    --link: var(--color-ochre-soft);
+    --accent: var(--color-currnt-raspberry-soft);
+    --accent-soft: var(--color-currnt-raspberry);
+    --accent-deep: var(--color-currnt-raspberry);
+    --navy: var(--color-currnt-navy-deep);
+    --link: var(--color-currnt-raspberry-soft);
   }
 
   html {
@@ -85,8 +97,14 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--navy);
+  }
+
+  html.dark h1,
+  html.dark h2,
+  html.dark h3 {
     color: var(--fg);
   }
 
@@ -102,12 +120,19 @@
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
-    text-decoration-color: color-mix(in oklab, var(--link) 40%, transparent);
-    transition: text-decoration-color 120ms ease;
+    text-decoration-color: color-mix(in oklab, var(--link) 35%, transparent);
+    transition:
+      text-decoration-color 120ms ease,
+      color 120ms ease;
   }
 
   a:hover {
     text-decoration-color: var(--link);
+    color: var(--accent-deep);
+  }
+
+  html.dark a:hover {
+    color: var(--color-currnt-raspberry-soft);
   }
 
   code {
@@ -117,6 +142,7 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 0.1em 0.35em;
+    color: var(--fg);
   }
 
   pre {
@@ -147,6 +173,15 @@
     background: color-mix(in oklab, var(--accent) 30%, transparent);
     color: var(--fg);
   }
+
+  strong {
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  html.dark strong {
+    color: var(--fg);
+  }
 }
 
 @utility prose-page {
@@ -168,10 +203,20 @@
     margin-block: 1.1em;
   }
 
+  .prose-page h1 {
+    font-size: clamp(2.2rem, 4.2vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    margin: 0 0 1.2rem 0;
+  }
+
   .prose-page h2 {
-    font-size: 1.65rem;
+    font-size: 1.75rem;
+    font-weight: 600;
     margin-top: 2.5em;
     margin-bottom: 0.5em;
+    letter-spacing: -0.005em;
   }
 
   .prose-page h3 {
@@ -181,6 +226,11 @@
     font-family: var(--font-sans);
     font-weight: 600;
     letter-spacing: 0;
+    color: var(--navy);
+  }
+
+  html.dark .prose-page h3 {
+    color: var(--fg);
   }
 
   .prose-page ul,
